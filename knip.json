@@ -1,7 +1,11 @@
 {
 	"$schema": "https://knip.dev/schema-jsonc.json",
 	"ignore": ["docs/source.config.ts"],
-	"ignoreDependencies": ["@tauri-apps/plugin-opener", "tailwind-merge", "dependency-cruiser"],
+	"ignoreDependencies": [
+		"@tauri-apps/plugin-opener",
+		"tailwind-merge",
+		"dependency-cruiser"
+	],
 	"workspaces": {
 		".": {
 			"project": ["src/**/*.{ts,tsx}"],
