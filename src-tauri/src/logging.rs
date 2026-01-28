@@ -43,28 +43,25 @@ pub fn init_logging() {
     let config = get_config();
 
     // Determine the log level from config. pick the most verbose one enabled.
-    let mut level = "off";
-    if config.logging.levels.critical {
-        level = "error";
-    }
-    if config.logging.levels.error {
-        level = "error";
-    }
-    if config.logging.levels.warning {
-        level = "warn";
-    }
-    if config.logging.levels.info {
-        level = "info";
-    }
-    if config.logging.levels.debug {
-        level = "debug";
-    }
+    let level = if config.logging.levels.debug {
+        "debug"
+    } else if config.logging.levels.info {
+        "info"
+    } else if config.logging.levels.warning {
+        "warn"
+    } else if config.logging.levels.error || config.logging.levels.critical {
+        "error"
+    } else {
+        "off"
+    };
 
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level));
 
     // Base formatter configuration
-    let show_file = config.logging.format.location.show_file;
-    let show_line = config.logging.format.location.show_line;
+    let location = &config.logging.format.location;
+    let show_file = location.show_file;
+    let show_line = location.show_line;
+    let show_target = location.enabled;
 
     // Setup redaction patterns
     let mut patterns = Vec::new();
@@ -82,7 +79,7 @@ pub fn init_logging() {
     let fmt_layer = if !config.logging.format.show_time {
         fmt::layer()
             .with_writer(make_writer)
-            .with_target(show_file)
+            .with_target(show_target)
             .with_file(show_file)
             .with_line_number(show_line)
             .with_thread_ids(false)
@@ -91,7 +88,7 @@ pub fn init_logging() {
     } else {
         fmt::layer()
             .with_writer(make_writer)
-            .with_target(show_file)
+            .with_target(show_target)
             .with_file(show_file)
             .with_line_number(show_line)
             .with_thread_ids(false)
