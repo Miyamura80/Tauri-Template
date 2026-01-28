@@ -14,8 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Link Checker
-        uses: peter-evans/link-checker@v2
+        uses: lycheeverify/lychee-action@v2.3.0
         with:
-          args: -v -r .
+          args: --verbose --no-progress .
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
