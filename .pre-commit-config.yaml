@@ -3,41 +3,27 @@ repos:
     rev: v4.6.0
     hooks:
       - id: check-added-large-files
+      - id: check-yaml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
   - repo: local
     hooks:
-      - id: lint-links
-        name: Lint markdown links
-        entry: make lint_links
+      - id: biome-check
+        name: Biome Check
+        entry: bunx @biomejs/biome check --apply .
         language: system
         pass_filenames: false
         always_run: true
-      - id: make-fmt
-        name: Run formatter (make fmt)
-        entry: make fmt
+      - id: cargo-fmt
+        name: Cargo Format
+        entry: bash -c "cd src-tauri && cargo fmt"
         language: system
         pass_filenames: false
         always_run: true
-      - id: ruff-check
-        name: Run ruff linter
-        entry: uv run ruff check
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: ruff-complexity
-        name: Check cyclomatic complexity
-        entry: uv run ruff check --select C901
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: ruff-tech-debt
-        name: Check TODO/FIXME markers
-        entry: uv run ruff check --select FIX
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: pylint-duplicate-code
-        name: Detect duplicate code
-        entry: uv run pylint --disable=all --enable=R0801 src common utils
+      - id: cargo-clippy
+        name: Cargo Clippy
+        entry: bash -c "cd src-tauri && cargo clippy -- -D warnings"
         language: system
         pass_filenames: false
         always_run: true

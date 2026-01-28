@@ -1,0 +1,21 @@
+name: Link Check (Lychee)
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "0 0 * * 1" # Run weekly on Mondays
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Link Checker
+        uses: lycheeverify/lychee-action@v1.9.0
+        with:
+          args: --verbose --no-progress .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

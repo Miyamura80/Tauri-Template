@@ -1,0 +1,5 @@
+{
+  "$schema": "https://knip.dev/schema-jsonc.json",
+  "project": ["src/**/*.{ts,tsx}", "docs/**/*.{ts,tsx}"],
+  "entry": ["src/main.tsx", "docs/app/page.tsx", "docs/app/layout.tsx"]
+}

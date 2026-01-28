@@ -209,96 +209,54 @@ test_flaky: check_uv ## Repeat fast tests to detect flaky tests
 
 
 ########################################################
-# Cleaning
+# Code Quality
 ########################################################
 
-# Linter will ignore these directories
-IGNORE_LINT_DIRS = .venv venv
-LINE_LENGTH = 88
-FIND_PRUNE = $(foreach dir,$(IGNORE_LINT_DIRS),-path "./$(dir)" -o) -false
-
 ### Code Quality
-install_tools: check_uv ## Install linting/formatting tools
-	@echo "$(YELLOW)🔧Installing tools...$(RESET)"
-	@uv tool install ruff --force
-	@uv tool install import-linter --force
-	@uv tool install ty --force
-	@uv tool install vulture --force
-	@echo "$(GREEN)✅Tools installed.$(RESET)"
+.PHONY: fmt lint knip audit link-check ci
 
-fmt: install_tools check_jq ## Format code with ruff and jq
-	@echo "$(YELLOW)✨Formatting project with Ruff...$(RESET)"
-	@uv tool run ruff format
-	@echo "$(YELLOW)✨Formatting JSONs with jq...$(RESET)"
-	@count=0; \
-	find . \( $(FIND_PRUNE) \) -prune -o -type f -name '*.json' -print0 | \
-	while IFS= read -r -d '' file; do \
-		if jq . "$$file" > "$$file.tmp" 2>/dev/null && mv "$$file.tmp" "$$file"; then \
-			count=$$((count + 1)); \
-		else \
-			rm -f "$$file.tmp"; \
-		fi; \
-	done; \
-	echo "$(BLUE)$$count JSON file(s)$(RESET) formatted."; \
-	echo "$(GREEN)✅Formatting completed.$(RESET)"
+fmt: ## Format code with Biome and rustfmt
+	@echo "$(YELLOW)✨ Formatting and linting with Biome...$(RESET)"
+	bunx @biomejs/biome check --write --unsafe .
+	@echo "$(YELLOW)✨ Formatting Rust code...$(RESET)"
+	cd src-tauri && cargo fmt
+	@echo "$(GREEN)✅ Formatting completed.$(RESET)"
 
-ruff: install_tools ## Run ruff linter
-	@echo "$(YELLOW)🔍Running ruff...$(RESET)"
-	@uv tool run ruff check
-	@echo "$(GREEN)✅Ruff completed.$(RESET)"
+lint: ## Lint code with Biome and Clippy
+	@echo "$(YELLOW)🔍 Checking with Biome...$(RESET)"
+	bunx @biomejs/biome check .
+	@echo "$(YELLOW)🔍 Linting Rust code with Clippy...$(RESET)"
+	cd src-tauri && cargo clippy -- -D warnings
+	@echo "$(GREEN)✅ Linting completed.$(RESET)"
 
-complexity: install_tools ## Check cyclomatic complexity
-	@echo "$(YELLOW)🔍Checking cyclomatic complexity...$(RESET)"
-	@uv tool run ruff check --select C901
-	@echo "$(GREEN)✅Complexity check completed.$(RESET)"
+knip: ## Find unused files, dependencies, and exports
+	@echo "$(YELLOW)🔍 Running Knip...$(RESET)"
+	bunx knip
+	@echo "$(GREEN)✅ Knip completed.$(RESET)"
 
-tech_debt: install_tools ## Check TODO/FIXME markers
-	@echo "$(YELLOW)🔍Checking tech debt markers...$(RESET)"
-	@uv tool run ruff check --select FIX
-	@echo "$(GREEN)✅Tech debt check completed.$(RESET)"
+audit: ## Audit dependencies for vulnerabilities
+	@echo "$(YELLOW)🔍 Auditing frontend dependencies...$(RESET)"
+	bun audit
+	@echo "$(YELLOW)🔍 Auditing Rust dependencies...$(RESET)"
+	@if command -v cargo-deny > /dev/null 2>&1; then \
+		cd src-tauri && cargo deny check; \
+	else \
+		echo "$(YELLOW)⚠️ cargo-deny not installed. Skipping Rust audit.$(RESET)"; \
+	fi
+	@echo "$(GREEN)✅ Audit completed.$(RESET)"
 
-duplicate_code: check_uv ## Detect duplicate code blocks
-	@echo "$(YELLOW)🔍Checking duplicate code...$(RESET)"
-	@uv run pylint --disable=all --enable=R0801 src common utils
-	@echo "$(GREEN)✅Duplicate code check completed.$(RESET)"
+link-check: ## Check for broken links in markdown files
+	@echo "$(YELLOW)🔍 Checking links...$(RESET)"
+	@if command -v lychee > /dev/null 2>&1; then \
+		lychee .; \
+	else \
+		echo "$(YELLOW)⚠️ lychee not installed. Falling back to markdown-link-check...$(RESET)"; \
+		bunx markdown-link-check README.md; \
+	fi
+	@echo "$(GREEN)✅ Link check completed.$(RESET)"
 
-vulture: install_tools ## Find dead code with vulture
-	@echo "$(YELLOW)🔍Running Vulture...$(RESET)"
-	@uv tool run vulture .
-	@echo "$(GREEN)✅Vulture completed.$(RESET)"
-
-import_lint: install_tools ## Enforce module boundaries with import-linter
-	@echo "$(YELLOW)🔍Running Import Linter...$(RESET)"
-	@uv tool run --from import-linter lint-imports
-	@echo "$(GREEN)✅Import Linter completed.$(RESET)"
-
-ty: install_tools ## Run type checker
-	@echo "$(YELLOW)🔍Running Typer...$(RESET)"
-	@uv run ty check
-	@echo "$(GREEN)✅Typer completed.$(RESET)"
-
-docs_lint: ## Lint docs links
-	@echo "$(YELLOW)🔍Linting docs links...$(RESET)"
-	@cd docs && bun run lint:links
-	@echo "$(GREEN)✅Docs linting completed.$(RESET)"
-
-lint_links: ## Lint all markdown links using pytest-check-links
-	@echo "$(YELLOW)🔍Linting all markdown links with pytest-check-links...$(RESET)"
-	@find . -name "*.md" -not -path "./.venv/*" -not -path "./node_modules/*" -not -path "./docs/node_modules/*" | xargs uv run pytest -p no:cov -o "addopts=" --check-links --check-links-ignore "http://localhost:.*"
-	@echo "$(GREEN)✅Link linting completed.$(RESET)"
-
-agents_validate: ## Validate AGENTS.md content
-	@echo "$(YELLOW)🔍Validating AGENTS.md...$(RESET)"
-	@$(PYTHON) scripts/validate_agents_md.py
-	@echo "$(GREEN)✅AGENTS.md validation completed.$(RESET)"
-
-check_deps: install_tools ## Check for unused dependencies
-	@echo "$(YELLOW)🔍Checking unused dependencies...$(RESET)"
-	@uv run deptry .
-	@echo "$(GREEN)✅Dependency check completed.$(RESET)"
-
-ci: ruff vulture import_lint ty docs_lint lint_links check_deps ## Run all CI checks (ruff, vulture, import_lint, ty, docs_lint, lint_links)
-	@echo "$(GREEN)✅CI checks completed.$(RESET)"
+ci: fmt lint knip audit link-check ## Run all CI checks
+	@echo "$(GREEN)✅ CI checks completed.$(RESET)"
 
 ########################################################
 # Dependencies
