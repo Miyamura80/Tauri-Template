@@ -1,6 +1,6 @@
 import pytest
 
-from src.utils.logging_config import scrub_sensitive_data
+from src_python.utils.logging_config import scrub_sensitive_data
 from tests.test_template import TestTemplate
 
 

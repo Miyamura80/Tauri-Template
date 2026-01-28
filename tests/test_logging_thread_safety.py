@@ -7,7 +7,7 @@ from tests.test_template import TestTemplate
 class TestLoggingThreadSafety(TestTemplate):
     def test_concurrent_setup_logging_initializes_once(self):
         """Test that concurrent calls to setup_logging() don't cause double-initialization."""
-        import src.utils.logging_config as logging_module
+        import src_python.utils.logging_config as logging_module
 
         # Reset state
         logging_module._logging_initialized = False

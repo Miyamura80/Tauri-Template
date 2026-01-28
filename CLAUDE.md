@@ -4,54 +4,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Super-opinionated Python stack for fast development. Python >= 3.12 required. Uses `uv` for dependency management (not pip).
+Tauri template for desktop application development with React and TypeScript. Migrating from a Python-based template.
 
 ## Common Commands
 
 ```bash
-# Setup & Run
-make init name=... description=... # Initialize project name and description
-make setup          # Create/update .venv and sync dependencies
-make all            # Run main.py with setup
+# Tauri / Frontend
+bun install          # Install dependencies
+bun run tauri dev    # Run the app in development mode
+bun run build        # Build the frontend
+bun run tauri build  # Build the Tauri application
 
-# Testing
-make test           # Run pytest on tests/
-make test_fast      # Run fast tests (no slow/nondeterministic)
-make test_flaky     # Repeat fast tests to detect flakiness
-make test_slow      # Run slow tests only
-make test_nondeterministic # Run nondeterministic tests only
-
-# Code Quality (run after major changes)
-make fmt            # Run ruff formatter + JSON formatting
-make ruff           # Run ruff linter
-make vulture        # Find dead code
-make ty             # Run type checker
-make lint_links     # Check for broken links in markdown files (README, etc.)
-make ci             # Run all CI checks (ruff, vulture, ty, import_lint, docs_lint, check_deps, lint_links)
-
-# Dependencies
-uv sync             # Install dependencies (not pip install)
-uv add <pkg>        # Add new dependency
-uv run python <file> # Run Python files
-uv run pytest path/to/test.py  # Run specific test
-
-# Release
-# 1. Update version in pyproject.toml
-# 2. Tag the commit: git tag -a v0.1.0 -m "Release v0.1.0"
-# 3. Push the tag: git push origin v0.1.0 (triggers Release workflow)
+# Legacy Python Commands
+make setup           # Create/update .venv and sync dependencies
+make test            # Run pytest on tests/
 ```
 
 ## Architecture
 
-- **common/** - Global configuration via pydantic-settings
-  - `global_config.yaml` - Base hyperparameters and config values
-  - `<name>.yaml` - Optional split configs (loaded as root key `<name>`)
-  - `global_config.py` - Config class (access via `from common import global_config`)
-  - `.env` - Secrets/API keys (git-ignored)
-- **src/** - Source code (utils/)
-- **utils/llm/** - LLM inference with DSPY (`dspy_inference.py`) and LangFuse observability
-- **tests/** - pytest tests inheriting from `TestTemplate` in `test_template.py`
-- **init/** - Initialization scripts (banner generation)
+- **src/** - Tauri frontend (React + TypeScript + Vite)
+- **src-tauri/** - Tauri backend (Rust)
+- **src_python/** - Legacy Python source code
+- **python_python_common/** - Legacy Python global configuration
+- **python_utils/** - Legacy Python utilities
+- **tests/** - pytest tests (legacy)
+- **init/** - Initialization scripts (legacy)
+- **docs/** - Documentation (Next.js app)
 
 ## Code Style
 
@@ -64,7 +42,7 @@ uv run pytest path/to/test.py  # Run specific test
 ## Configuration Pattern
 
 ```python
-from common import global_config
+from python_common import global_config
 
 # Access config values
 global_config.example_parent.example_child
@@ -77,7 +55,7 @@ global_config.OPENAI_API_KEY
 ## LLM Inference Pattern
 
 ```python
-from utils.llm.dspy_inference import DSPYInference
+from python_utils.llm.dspy_inference import DSPYInference
 import dspy
 
 class MySignature(dspy.Signature):
@@ -107,7 +85,7 @@ class TestMyFeature(TestTemplate):
 
 ```python
 from loguru import logger as log
-from src.utils.logging_config import setup_logging
+from src_python.utils.logging_config import setup_logging
 
 setup_logging()
 log.debug("detailed diagnostic information")

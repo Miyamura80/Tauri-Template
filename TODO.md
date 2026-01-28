@@ -10,8 +10,8 @@
 ### High Priority
 
 - [x] Broad exception handling in `src/utils/logging_config.py:64` - catches all exceptions indiscriminately
-- [x] Validator anti-pattern in `common/global_config.py:188-198` - validators ignore input parameter `v`
-- [x] Circular import risk in `common/flags.py:6-7` - `setup_logging()` called at import time
+- [x] Validator anti-pattern in `python_common/global_config.py:188-198` - validators ignore input parameter `v`
+- [x] Circular import risk in `python_common/flags.py:6-7` - `setup_logging()` called at import time
 - [x] Broad exceptions in `utils/llm/dspy_langfuse.py:280,321,438` - catches generic `Exception`
 - [x] Unsafe exception re-instantiation in `src/utils/logging_config.py:61-71` - reconstructs exceptions unsafely
 

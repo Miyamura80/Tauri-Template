@@ -5,7 +5,7 @@ This project uses [pydantic-settings](https://docs.pydantic.dev/latest/concepts/
 ## File Structure
 
 ```
-common/
+python_common/
 ├── global_config.yaml    # Base configuration values (checked into git)
 ├── config_models.py      # Pydantic models defining config structure
 ├── global_config.py      # Config class and singleton instance
@@ -18,7 +18,7 @@ common/
 ## Quick Usage
 
 ```python
-from common import global_config
+from python_common import global_config
 
 # Access nested YAML config values
 global_config.example_parent.example_child
@@ -44,7 +44,7 @@ The config system merges values from multiple sources. Higher priority sources o
 
 ### 1. Add to YAML
 
-Add your values to `common/global_config.yaml`:
+Add your values to `python_common/global_config.yaml`:
 
 ```yaml
 my_feature:
@@ -54,7 +54,7 @@ my_feature:
 
 ### 2. Create Pydantic Model
 
-Define the structure in `common/config_models.py`:
+Define the structure in `python_common/config_models.py`:
 
 ```python
 class MyFeatureConfig(BaseModel):
@@ -64,7 +64,7 @@ class MyFeatureConfig(BaseModel):
 
 ### 3. Register in Config Class
 
-Add the field to `common/global_config.py`:
+Add the field to `python_common/global_config.py`:
 
 ```python
 from .config_models import MyFeatureConfig
@@ -77,7 +77,7 @@ class Config(BaseSettings):
 ### 4. Use It
 
 ```python
-from common import global_config
+from python_common import global_config
 
 if global_config.my_feature.enabled:
     do_something(global_config.my_feature.threshold)
@@ -93,7 +93,7 @@ MY_API_KEY=sk-...
 
 ### 2. Register in Config Class
 
-Add the field to `common/global_config.py`:
+Add the field to `python_common/global_config.py`:
 
 ```python
 class Config(BaseSettings):

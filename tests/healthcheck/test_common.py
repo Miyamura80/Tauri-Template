@@ -1,4 +1,4 @@
-from common import global_config
+from python_common import global_config
 from tests.test_template import TestTemplate
 
 

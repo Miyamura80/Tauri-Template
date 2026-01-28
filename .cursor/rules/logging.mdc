@@ -9,7 +9,7 @@ This project uses a centralized logging configuration with `loguru`. Always use 
 
 ```python
 from loguru import logger as log
-from src.utils.logging_config import setup_logging
+from src_python.utils.logging_config import setup_logging
 
 # Setup logging at the start of your file
 setup_logging()
@@ -33,9 +33,9 @@ ERROR  12:34:57 |  Failed to connect to database
 
 Never configure logging directly in your files. Always use the centralized configuration to maintain consistent logging format across the entire application.
 
-If for whatever reason some log is not showing up, check the `common/global_config.yaml` file to see if the log level is set to true. The logging configuration is validated using pydantic-settings to ensure correct types.
+If for whatever reason some log is not showing up, check the `python_common/global_config.yaml` file to see if the log level is set to true. The logging configuration is validated using pydantic-settings to ensure correct types.
 
-```yaml file=common/global_config.yaml
+```yaml file=python_common/global_config.yaml
 logging:
   # ... Other logging config ...
   levels:

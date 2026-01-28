@@ -32,6 +32,25 @@ help: ## Show this help message
 		}' $(MAKEFILE_LIST)
 
 ########################################################
+# Tauri / Frontend
+########################################################
+
+### Tauri
+.PHONY: dev build tauri-dev tauri-build
+
+dev: ## Run the frontend in development mode
+	bun run dev
+
+build: ## Build the frontend
+	bun run build
+
+tauri-dev: ## Run the app in Tauri development mode
+	bun run tauri dev
+
+tauri-build: ## Build the Tauri application
+	bun run tauri build
+
+########################################################
 # Initialization
 ########################################################
 

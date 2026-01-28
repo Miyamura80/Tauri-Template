@@ -1,4 +1,4 @@
-from common import global_config
+from python_common import global_config
 
 
 def main():

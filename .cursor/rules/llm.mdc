@@ -9,7 +9,7 @@ For LLM inference in the codebase, you should use dspy inference module, like be
 If you pass tools, it will figure out how to use the tools, otherwise, will run normal LLM inference.
 
 ```python
-from utils.llm.dspy_inference import DSPYInference
+from python_utils.llm.dspy_inference import DSPYInference
 import dspy
 import asyncio
 

@@ -67,9 +67,9 @@ Opinionated Python stack for fast development. The `saas` branch extends `main` 
 ## Configuration
 
 ```python
-from common import global_config
+from python_common import global_config
 
-# Access config values from common/global_config.yaml
+# Access config values from python_python_common/global_config.yaml
 global_config.example_parent.example_child
 
 # Access secrets from .env

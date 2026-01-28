@@ -8,8 +8,8 @@ from google import genai
 from google.genai import types
 from PIL import Image
 
-from common import global_config
-from utils.llm.dspy_inference import DSPYInference
+from python_common import global_config
+from python_utils.llm.dspy_inference import DSPYInference
 
 
 class WordmarkDescription(dspy.Signature):
