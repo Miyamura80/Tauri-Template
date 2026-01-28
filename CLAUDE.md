@@ -74,5 +74,6 @@ Structure as: `init()` → `continue(id)` → `cleanup(id)`
 - Handle rate limits, timeouts, retries at system boundaries
 
 ## Git Workflow
+- **Review**: Always trigger Greptile review MCP before pushing a PR and resolve any branch issues.
 - **Protected Branch**: `main` is protected. Do not push directly to `main`. Use PRs.
 - **Merge Strategy**: Squash and merge.
