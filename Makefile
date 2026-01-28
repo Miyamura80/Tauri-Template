@@ -75,16 +75,6 @@ init: ## Initialize project (usage: make init name=my-project description="my de
 	@sed -i.bak "s/<b>Opinionated Python project stack. 🔋 Batteries included. <\/b>/<b>$(description)<\/b>/" README.md && rm README.md.bak
 	@echo "$(GREEN)✅ Updated project name and description.$(RESET)"
 
-banner: check_uv ## Generate project banner image (requires Python)
-	@echo "$(YELLOW)🔍Generating banner...$(RESET)"
-	@uv run python -m init.generate_banner
-	@echo "$(GREEN)✅Banner generated.$(RESET)"
-
-logo: check_uv ## Generate logo and favicon for docs (requires Python)
-	@echo "$(YELLOW)🔍Generating logo and favicon...$(RESET)"
-	@uv run python -m init.generate_logo
-	@echo "$(GREEN)✅Logo and favicon generated in docs/public/$(RESET)"
-
 check_uv:
 	@if ! command -v uv > /dev/null 2>&1; then \
 		echo "$(RED)uv is not installed. Please install uv to run Python-based asset generation.$(RESET)"; \

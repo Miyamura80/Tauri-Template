@@ -23,9 +23,6 @@ export interface AppConfig {
 		};
 	};
 	features: Record<string, boolean>;
-	// API keys are usually not sent to frontend for security,
-	// but they are in the Rust struct. Tauri's Serialize will include them
-	// if they are public fields.
 }
 
 export function useConfig() {

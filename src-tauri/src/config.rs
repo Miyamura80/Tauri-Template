@@ -153,15 +153,15 @@ pub fn get_config() -> &'static AppConfig {
 
 fn load_config() -> Result<AppConfig, ConfigError> {
     let builder = Config::builder()
-        // Load default config from multiple possible locations
-        .add_source(File::with_name("global_config.yaml").required(false))
+        // Load default config
         .add_source(File::with_name("src-tauri/global_config.yaml").required(false))
+        .add_source(File::with_name("global_config.yaml").required(false))
         // Load production config if in prod
-        .add_source(File::with_name("production_config.yaml").required(false))
         .add_source(File::with_name("src-tauri/production_config.yaml").required(false))
+        .add_source(File::with_name("production_config.yaml").required(false))
         // Load local override
-        .add_source(File::with_name(".global_config.yaml").required(false))
         .add_source(File::with_name("src-tauri/.global_config.yaml").required(false))
+        .add_source(File::with_name(".global_config.yaml").required(false))
         // Load environment variables
         // Map nested env vars like APP__LOGGING__VERBOSE=true
         .add_source(Environment::with_prefix("APP").separator("__"));
@@ -172,15 +172,12 @@ fn load_config() -> Result<AppConfig, ConfigError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::env;
-    use std::sync::Mutex;
-
-    // Mutex to ensure tests that modify environment variables run serially
-    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
+    #[serial]
     fn test_load_config() {
-        let _lock = ENV_MUTEX.lock().unwrap();
         // Ensure the config loads without error
         let config = load_config();
         assert!(config.is_ok(), "Failed to load config: {:?}", config.err());
@@ -195,8 +192,8 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_env_var_override_precedence() {
-        let _lock = ENV_MUTEX.lock().unwrap();
         // YAML value is "gemini/gemini-3-flash-preview"
         env::set_var("APP__MODEL_NAME", "override-model");
 
@@ -207,8 +204,8 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_type_coercion_boolean() {
-        let _lock = ENV_MUTEX.lock().unwrap();
         env::set_var("APP__LLM_CONFIG__CACHE_ENABLED", "true");
         let config = load_config().expect("Should load config");
         assert_eq!(config.llm_config.cache_enabled, true);
@@ -221,8 +218,8 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_type_coercion_numeric() {
-        let _lock = ENV_MUTEX.lock().unwrap();
         env::set_var("APP__DEFAULT_LLM__DEFAULT_TEMPERATURE", "0.95");
         env::set_var("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS", "10");
 
@@ -235,8 +232,8 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_frontend_config_sanitization() {
-        let _lock = ENV_MUTEX.lock().unwrap();
         let config = AppConfig {
             model_name: "gpt-4".to_string(),
             dot_global_config_health_check: true,
