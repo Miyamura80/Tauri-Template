@@ -71,6 +71,13 @@ async def generate_banner(title: str, suggestion: str | None = None) -> Image.Im
 
 
 if __name__ == "__main__":
-    title = "Python-Template"
-    suggestion = "use a snake in the image"
+    import tomllib
+    from pathlib import Path
+
+    # Read project name from pyproject.toml
+    with open(Path(__file__).parent.parent / "pyproject.toml", "rb") as f:
+        data = tomllib.load(f)
+        title = data.get("project", {}).get("name", "Tauri-Template")
+
+    suggestion = "use a crab in the image"
     asyncio.run(generate_banner(title, suggestion))

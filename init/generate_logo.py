@@ -263,6 +263,13 @@ async def generate_logo(
 
 
 if __name__ == "__main__":
-    project_name = "Python-Template"
-    suggestion = "incorporate python snake and modern tech aesthetics, simple and clean"
+    import tomllib
+    from pathlib import Path
+
+    # Read project name from pyproject.toml
+    with open(Path(__file__).parent.parent / "pyproject.toml", "rb") as f:
+        data = tomllib.load(f)
+        project_name = data.get("project", {}).get("name", "Tauri-Template")
+
+    suggestion = "incorporate crab and modern tech aesthetics, simple and clean"
     asyncio.run(generate_logo(project_name, suggestion))
