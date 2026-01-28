@@ -66,6 +66,13 @@ Use emoji prefixes indicating change type and magnitude (multiple emojis = 5+ fi
 - ⚙️ config changes
 - 💽 DB schema/migrations
 
+## Long-Running Code Pattern
+
+Structure as: `init()` → `continue(id)` → `cleanup(id)`
+- Keep state serializable
+- Use descriptive IDs (runId, taskId)
+- Handle rate limits, timeouts, retries at system boundaries
+
 ## Git Workflow
 - **Protected Branch**: `main` is protected. Do not push directly to `main`. Use PRs.
 - **Merge Strategy**: Squash and merge.

@@ -48,6 +48,50 @@ tauri-dev: ## Run the app in Tauri development mode
 tauri-build: ## Build the Tauri application
 	bun run tauri build
 
+docs: ## Run docs with bun
+	@echo "$(GREEN)📚Running docs...$(RESET)"
+	@cd docs && bun run dev
+	@echo "$(GREEN)✅ Docs run completed.$(RESET)"
+
+
+########################################################
+# Initialization
+########################################################
+
+### Initialization
+.PHONY: init banner logo
+
+init: ## Initialize project (usage: make init name=my-project description="my description")
+	@if [ -z "$(name)" ] || [ -z "$(description)" ]; then \
+		echo "$(RED)Error: Both 'name' and 'description' parameters are required$(RESET)"; \
+		echo "Usage: make init name=<project_name> description=<project_description>"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)🚀 Initializing project $(name)...$(RESET)"
+	@sed -i.bak "s/name = \"tauri-app\"/name = \"$(name)\"/" package.json && rm package.json.bak
+	@sed -i.bak "s/\"productName\": \"tauri-app\"/\"productName\": \"$(name)\"/" src-tauri/tauri.conf.json && rm src-tauri/tauri.conf.json.bak
+	@sed -i.bak "s/name = \"tauri-app\"/name = \"$(name)\"/" src-tauri/Cargo.toml && rm src-tauri/Cargo.toml.bak
+	@sed -i.bak "s/# Python-Template/# $(name)/" README.md && rm README.md.bak
+	@echo "$(GREEN)✅ Updated project name and description.$(RESET)"
+
+banner: check_uv ## Generate project banner image (requires Python)
+	@echo "$(YELLOW)🔍Generating banner...$(RESET)"
+	@uv run python -m init.generate_banner
+	@echo "$(GREEN)✅Banner generated.$(RESET)"
+
+logo: check_uv ## Generate logo and favicon for docs (requires Python)
+	@echo "$(YELLOW)🔍Generating logo and favicon...$(RESET)"
+	@uv run python -m init.generate_logo
+	@echo "$(GREEN)✅Logo and favicon generated in docs/public/$(RESET)"
+
+check_uv:
+	@if ! command -v uv > /dev/null 2>&1; then \
+		echo "$(RED)uv is not installed. Please install uv to run Python-based asset generation.$(RESET)"; \
+		exit 1; \
+	fi
+
+
+
 ########################################################
 # Run Tests
 ########################################################
@@ -57,6 +101,26 @@ test: ## Run Rust tests
 	@echo "$(GREEN)🧪Running Rust Tests...$(RESET)"
 	cd src-tauri && cargo test
 	@echo "$(GREEN)✅Rust Tests Passed.$(RESET)"
+
+test_fast: ## Run fast tests (Rust)
+	@echo "$(GREEN)🧪Running Fast Rust Tests...$(RESET)"
+	cd src-tauri && cargo test
+	@echo "$(GREEN)✅Fast Rust Tests Passed.$(RESET)"
+
+test_slow: ## Run slow tests (Rust placeholder)
+	@echo "$(YELLOW)⚠️ No slow Rust tests defined yet.$(RESET)"
+
+test_nondeterministic: ## Run nondeterministic tests (Rust placeholder)
+	@echo "$(YELLOW)⚠️ No nondeterministic Rust tests defined yet.$(RESET)"
+
+test_flaky: ## Repeat fast tests to detect flaky tests
+	@echo "$(GREEN)🧪Running Flaky Test Detection (3 runs)...$(RESET)"
+	@cd src-tauri && for i in 1 2 3; do \
+		echo "Run $$i..."; \
+		cargo test || exit 1; \
+	done
+	@echo "$(GREEN)✅Flaky Test Detection Passed.$(RESET)"
+
 
 ########################################################
 # Code Quality
