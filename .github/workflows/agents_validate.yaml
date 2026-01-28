@@ -34,7 +34,7 @@ jobs:
         
         MISSING=0
         for section in "${REQUIRED_SECTIONS[@]}"; do
-          if ! grep -q "^##+ $section" "$FILE"; then
+          if ! grep -q "^## $section" "$FILE"; then
             echo "Error: Missing section '$section' in $FILE"
             MISSING=1
           fi
