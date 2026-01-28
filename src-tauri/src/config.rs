@@ -18,10 +18,15 @@ pub struct AppConfig {
     pub features: HashMap<String, bool>,
 
     // Environment variables (optional in config file, usually injected)
+    #[serde(skip_serializing)]
     pub openai_api_key: Option<String>,
+    #[serde(skip_serializing)]
     pub anthropic_api_key: Option<String>,
+    #[serde(skip_serializing)]
     pub groq_api_key: Option<String>,
+    #[serde(skip_serializing)]
     pub perplexity_api_key: Option<String>,
+    #[serde(skip_serializing)]
     pub gemini_api_key: Option<String>,
 }
 
@@ -122,13 +127,15 @@ pub fn get_config() -> &'static AppConfig {
 fn load_config() -> Result<AppConfig, ConfigError> {
     let builder = Config::builder()
         // Load default config
-        .add_source(File::with_name("global_config.yaml"))
-        // Load production config if in prod (simplified logic, can be expanded)
+        .add_source(File::with_name("global_config.yaml").required(false))
+        .add_source(File::with_name("src-tauri/global_config.yaml").required(false))
+        // Load production config if in prod
         .add_source(File::with_name("production_config.yaml").required(false))
+        .add_source(File::with_name("src-tauri/production_config.yaml").required(false))
         // Load local override
         .add_source(File::with_name(".global_config.yaml").required(false))
-        // Load environment variables (e.g. OPENAI_API_KEY)
-        // This maps env vars like "OPENAI_API_KEY" directly to struct fields
+        .add_source(File::with_name("src-tauri/.global_config.yaml").required(false))
+        // Load environment variables
         .add_source(Environment::default());
 
     builder.build()?.try_deserialize()
