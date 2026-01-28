@@ -1,7 +1,7 @@
 pub mod config;
 pub mod logging;
 
-use config::AppConfig;
+use config::FrontendConfig;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -10,8 +10,8 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-fn get_app_config() -> &'static AppConfig {
-    config::get_config()
+fn get_app_config() -> FrontendConfig {
+    config::get_config().into()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

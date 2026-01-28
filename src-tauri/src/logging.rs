@@ -1,33 +1,44 @@
 use crate::config::get_config;
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{fmt, EnvFilter};
 
 pub fn init_logging() {
     let config = get_config();
 
-    // Set up filter based on config levels
-    // This is a basic implementation mapping boolean flags to tracing levels
-    // A more complex implementation could fine-tune per module
-    let mut level = "info";
+    // Determine the log level from config
+    let mut level = "off";
+    if config.logging.levels.critical {
+        level = "error";
+    }
+    if config.logging.levels.error {
+        level = "error";
+    }
+    if config.logging.levels.warning {
+        level = "warn";
+    }
+    if config.logging.levels.info {
+        level = "info";
+    }
     if config.logging.levels.debug {
         level = "debug";
     }
 
-    // If specific levels are disabled, we might need a more complex filter construction
-    // For now, we rely on the primary level
-
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level));
 
-    let builder = tracing_subscriber::fmt()
+    let builder = fmt::Subscriber::builder()
         .with_env_filter(filter)
         .with_target(config.logging.format.location.show_file)
-        .with_thread_ids(false) // config doesn't have a setting for this, default off
         .with_file(config.logging.format.location.show_file)
-        .with_line_number(config.logging.format.location.show_line);
+        .with_line_number(config.logging.format.location.show_line)
+        .with_thread_ids(false);
 
-    // Apply time formatting
-    if !config.logging.format.show_time {
-        builder.without_time().init();
+    let builder = if !config.logging.format.show_time {
+        builder.without_time()
     } else {
-        builder.init();
-    }
+        builder
+    };
+
+    builder.init();
+
+    // Note: Redaction patterns from config.logging.redaction are not yet implemented
+    // in this tracing setup. This requires a custom tracing Layer.
 }

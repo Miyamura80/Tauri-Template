@@ -26,4 +26,5 @@ serde_yaml = "0.9"
 config = { version = "0.15", features = ["yaml"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+regex = "1.10"
 

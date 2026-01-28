@@ -5,39 +5,28 @@ alwaysApply: true
 ---
 ## Logging Configuration
 
-This project uses a centralized logging configuration with `loguru`. Always use the standardized logging format by importing and calling the setup function from `src/utils/logging_config.py`.
+This project uses a centralized logging configuration with Rust's **tracing** crate. Always use the standardized logging format by initializing the logging system in `src-tauri/src/lib.rs`.
 
-```python
-from loguru import logger as log
-from src_python.utils.logging_config import setup_logging
+```rust
+use tracing::{info, warn, error, debug};
 
-# Setup logging at the start of your file
-setup_logging()
+// Initialized once in lib.rs run()
+// logging::init_logging();
 
-# Then use logger as needed
-log.info("Info message")
-log.error("Error message")
-log.debug("Debug message")
+// Then use macros as needed
+info!("Info message");
+error!("Error message");
+debug!("Debug message");
 ```
 
-The standardized format includes:
-- Log level (INFO, ERROR, etc.)
-- Timestamp (HH:mm:ss)
-- Message
-
-Example output:
-```
-INFO   12:34:56 |  Starting application
-ERROR  12:34:57 |  Failed to connect to database
-```
+The standardized format is configured in `src-tauri/src/logging.rs` and respects settings in `src-tauri/global_config.yaml`.
 
 Never configure logging directly in your files. Always use the centralized configuration to maintain consistent logging format across the entire application.
 
-If for whatever reason some log is not showing up, check the `python_common/global_config.yaml` file to see if the log level is set to true. The logging configuration is validated using pydantic-settings to ensure correct types.
+If for whatever reason some log is not showing up, check the `src-tauri/global_config.yaml` file to see if the log level is enabled.
 
-```yaml file=python_common/global_config.yaml
+```yaml
 logging:
-  # ... Other logging config ...
   levels:
     debug: false
     info: true

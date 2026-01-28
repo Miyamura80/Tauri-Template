@@ -5,47 +5,35 @@ alwaysApply: true
 ---
 ## Using global configuration
 
-Global config is used to store hyperparameters that should be applied across the entire codebase. The configuration system uses **pydantic-settings** for automatic validation and type checking. They handle both environment variables (should not be committed to the repo) and other configuration values (safe to commit to the repo).
+Global config is used to store hyperparameters that should be applied across the entire codebase. The configuration system uses Rust's **config** crate with **serde** for automatic validation and type checking.
 
 **Configuration Files:**
-- `python_common/global_config.yaml` - Base configuration values
-- `python_common/<name>.yaml` - Optional split config files (contents loaded under root key `<name>`)
-- `python_common/config_models.py` - Pydantic models defining structure and validation
-- `python_common/global_config.py` - Main Config class using BaseSettings
+- `src-tauri/global_config.yaml` - Base configuration values
+- `src-tauri/src/config.rs` - Rust structs defining structure and validation
 - `.env` - Environment variables and secrets (git-ignored)
 
-You can split config sections into their own YAML files in `python_common/`. For example, `python_common/logging.yaml` will have its contents loaded under the `logging` root key, equivalent to defining that section inline in `global_config.yaml`. If `global_config.yaml` already defines the same root key, a `KeyError` is raised to prevent conflicts.
+Whenever there is a hyperparameter that should be applied across the entire codebase, add those hyperparameters in `src-tauri/global_config.yaml`. Whenever a user seems to have defined a hyperparameter in the wrong scope, or using a constant value in their code point them towards `src-tauri/global_config.yaml` and ask them to add it there instead.
 
-Whenever there is a hyperparameter that should be applied across the entire codebase, add those hyperparameters in `python_common/global_config.yaml` (or a split file). Whenever a user seems to have defined a hyperparameter in the wrong scope, or using a constant value in their code point them towards `python_common/global_config.yaml` and ask them to add it there instead.
+Any private or secret keys should be stored in the .env file in the root of the project, which is automatically loaded into the config.
 
-Examples of this are:
-- `MAX_RETRIES`
-- `MODEL_NAME`
-- etc, etc
+To add new configuration fields, define the corresponding struct in `src-tauri/src/config.rs` first, then add the field to the `AppConfig` struct.
 
-Any private or secret keys should be stored in the .env file in the root of the project, which is automatically loaded into common.
+Then, these common values can be accessed in Rust using:
 
-Examples of this are:
-- `OPENAI_API_KEY`
-- `GITHUB_PERSONAL_ACCESS_TOKEN`
-- etc, etc
+```rust
+use crate::config::get_config;
 
-To add new configuration fields with nested structures, define the corresponding Pydantic model in `python_common/config_models.py` first, then add the field to the `Config` class in `python_common/global_config.py`.
-
-Then, these common values can be accessed in python files using:
-
-```yaml file=python_common/global_config.yaml
-example_key: example_value
-example_parent:
-  example_child: example_value
+let config = get_config();
+println!("{}", config.model_name);
 ```
 
-```python
-from python_common import global_config
+And in React using the `useConfig` hook:
 
-# Handling non-secrets
-print(global_config.example_parent.example_child)
+```typescript
+import { useConfig } from "./hooks/useConfig";
 
-# Handling secrets
-print(global_config.OPENAI_API_KEY)
+const { config } = useConfig();
+if (config) {
+  console.log(config.model_name);
+}
 ```

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppConfig {
     pub model_name: String,
     pub dot_global_config_health_check: bool,
@@ -30,16 +30,43 @@ pub struct AppConfig {
     pub gemini_api_key: Option<String>,
 }
 
+/// A sanitized version of the configuration intended for exposure to the frontend.
+/// This strictly excludes sensitive information like API keys.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FrontendConfig {
+    pub model_name: String,
+    pub dot_global_config_health_check: bool,
+    pub dev_env: String,
+    pub example_parent: ExampleParent,
+    pub default_llm: DefaultLlm,
+    pub llm_config: LlmConfig,
+    pub features: HashMap<String, bool>,
+}
+
+impl From<&AppConfig> for FrontendConfig {
+    fn from(config: &AppConfig) -> Self {
+        Self {
+            model_name: config.model_name.clone(),
+            dot_global_config_health_check: config.dot_global_config_health_check,
+            dev_env: config.dev_env.clone(),
+            example_parent: config.example_parent.clone(),
+            default_llm: config.default_llm.clone(),
+            llm_config: config.llm_config.clone(),
+            features: config.features.clone(),
+        }
+    }
+}
+
 fn default_dev_env() -> String {
     "dev".to_string()
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ExampleParent {
     pub example_child: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DefaultLlm {
     pub default_model: String,
     pub fallback_model: Option<String>,
@@ -47,20 +74,20 @@ pub struct DefaultLlm {
     pub default_max_tokens: i32,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LlmConfig {
     pub cache_enabled: bool,
     pub retry: RetryConfig,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RetryConfig {
     pub max_attempts: i32,
     pub min_wait_seconds: i32,
     pub max_wait_seconds: i32,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LoggingConfig {
     pub verbose: bool,
     pub format: LoggingFormatConfig,
@@ -69,14 +96,14 @@ pub struct LoggingConfig {
     pub redaction: RedactionConfig,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LoggingFormatConfig {
     pub show_time: bool,
     pub show_session_id: bool,
     pub location: LoggingLocationConfig,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LoggingLocationConfig {
     pub enabled: bool,
     pub show_file: bool,
@@ -88,7 +115,7 @@ pub struct LoggingLocationConfig {
     pub show_for_error: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LoggingLevelsConfig {
     pub debug: bool,
     pub info: bool,
@@ -97,7 +124,7 @@ pub struct LoggingLevelsConfig {
     pub critical: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct RedactionConfig {
     #[serde(default = "true_default")]
     pub enabled: bool,
@@ -111,7 +138,7 @@ fn true_default() -> bool {
     true
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RedactionPattern {
     pub name: String,
     pub regex: String,
@@ -136,7 +163,8 @@ fn load_config() -> Result<AppConfig, ConfigError> {
         .add_source(File::with_name(".global_config.yaml").required(false))
         .add_source(File::with_name("src-tauri/.global_config.yaml").required(false))
         // Load environment variables
-        .add_source(Environment::default());
+        // Map nested env vars like APP__LOGGING__VERBOSE=true
+        .add_source(Environment::with_prefix("APP").separator("__"));
 
     builder.build()?.try_deserialize()
 }
@@ -144,6 +172,7 @@ fn load_config() -> Result<AppConfig, ConfigError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
 
     #[test]
     fn test_load_config() {
@@ -161,10 +190,102 @@ mod tests {
     }
 
     #[test]
-    fn test_default_dev_env() {
-        let config = load_config().unwrap();
-        // assuming env var isn't set during this test, or defaults to what's in yaml/default
-        // The struct default is "dev", but yaml says "dev"
-        assert_eq!(config.dev_env, "dev");
+    fn test_env_var_override_precedence() {
+        // YAML value is "gemini/gemini-3-flash-preview"
+        env::set_var("APP__MODEL_NAME", "override-model");
+
+        let config = load_config().expect("Should load config");
+        assert_eq!(config.model_name, "override-model");
+
+        env::remove_var("APP__MODEL_NAME");
+    }
+
+    #[test]
+    fn test_type_coercion_boolean() {
+        env::set_var("APP__LLM_CONFIG__CACHE_ENABLED", "true");
+        let config = load_config().expect("Should load config");
+        assert_eq!(config.llm_config.cache_enabled, true);
+
+        env::set_var("APP__LLM_CONFIG__CACHE_ENABLED", "false");
+        let config = load_config().expect("Should load config");
+        assert_eq!(config.llm_config.cache_enabled, false);
+
+        env::remove_var("APP__LLM_CONFIG__CACHE_ENABLED");
+    }
+
+    #[test]
+    fn test_type_coercion_numeric() {
+        env::set_var("APP__DEFAULT_LLM__DEFAULT_TEMPERATURE", "0.95");
+        env::set_var("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS", "10");
+
+        let config = load_config().expect("Should load config");
+        assert_eq!(config.default_llm.default_temperature, 0.95);
+        assert_eq!(config.llm_config.retry.max_attempts, 10);
+
+        env::remove_var("APP__DEFAULT_LLM__DEFAULT_TEMPERATURE");
+        env::remove_var("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS");
+    }
+
+    #[test]
+    fn test_frontend_config_sanitization() {
+        let config = AppConfig {
+            model_name: "gpt-4".to_string(),
+            dot_global_config_health_check: true,
+            dev_env: "dev".to_string(),
+            example_parent: ExampleParent {
+                example_child: "val".to_string(),
+            },
+            default_llm: DefaultLlm {
+                default_model: "gpt-4".to_string(),
+                fallback_model: None,
+                default_temperature: 0.7,
+                default_max_tokens: 100,
+            },
+            llm_config: LlmConfig {
+                cache_enabled: true,
+                retry: RetryConfig {
+                    max_attempts: 1,
+                    min_wait_seconds: 1,
+                    max_wait_seconds: 1,
+                },
+            },
+            logging: LoggingConfig {
+                verbose: true,
+                format: LoggingFormatConfig {
+                    show_time: true,
+                    show_session_id: true,
+                    location: LoggingLocationConfig {
+                        enabled: true,
+                        show_file: true,
+                        show_function: true,
+                        show_line: true,
+                        show_for_info: true,
+                        show_for_debug: true,
+                        show_for_warning: true,
+                        show_for_error: true,
+                    },
+                },
+                levels: LoggingLevelsConfig {
+                    debug: true,
+                    info: true,
+                    warning: true,
+                    error: true,
+                    critical: true,
+                },
+                redaction: RedactionConfig::default(),
+            },
+            features: HashMap::new(),
+            openai_api_key: Some("secret-key".to_string()),
+            anthropic_api_key: None,
+            groq_api_key: None,
+            perplexity_api_key: None,
+            gemini_api_key: None,
+        };
+
+        let frontend_config = FrontendConfig::from(&config);
+        let json = serde_json::to_string(&frontend_config).unwrap();
+
+        assert!(!json.contains("secret-key"));
+        assert!(!json.contains("openai_api_key"));
     }
 }
