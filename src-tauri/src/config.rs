@@ -153,7 +153,7 @@ pub fn get_config() -> &'static AppConfig {
 
 fn load_config() -> Result<AppConfig, ConfigError> {
     let builder = Config::builder()
-        // Load default config
+        // Load default config from multiple possible locations
         .add_source(File::with_name("global_config.yaml").required(false))
         .add_source(File::with_name("src-tauri/global_config.yaml").required(false))
         // Load production config if in prod

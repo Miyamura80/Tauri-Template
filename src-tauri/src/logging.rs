@@ -43,7 +43,7 @@ pub fn init_logging() {
     let config = get_config();
 
     // Determine the log level from config - pick the most verbose one enabled.
-    // This follows the priority: debug > info > warn > error > critical (error)
+    // Priority: debug > info > warning > error > critical (error)
     let level = if config.logging.levels.debug {
         "debug"
     } else if config.logging.levels.info {

@@ -135,6 +135,7 @@ celerybeat.pid
 # Environments
 .env
 .prod.env
+opencode.json
 .venv
 env/
 venv/
