@@ -42,7 +42,8 @@ impl<'a> fmt::MakeWriter<'a> for RedactingMakeWriter {
 pub fn init_logging() {
     let config = get_config();
 
-    // Determine the log level from config. pick the most verbose one enabled.
+    // Determine the log level from config - pick the most verbose one enabled.
+    // This follows the priority: debug > info > warn > error > critical (error)
     let level = if config.logging.levels.debug {
         "debug"
     } else if config.logging.levels.info {
@@ -55,13 +56,15 @@ pub fn init_logging() {
         "off"
     };
 
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level));
+    // Use the level from config as the base filter.
+    // Note: try_from_default_env() is skipped to ensure config is the source of truth.
+    let filter = EnvFilter::new(level);
 
     // Base formatter configuration
     let location = &config.logging.format.location;
     let show_file = location.show_file;
     let show_line = location.show_line;
-    let show_target = location.enabled;
+    let show_target = location.show_function; // Map show_function to tracing's target display
 
     // Setup redaction patterns
     let mut patterns = Vec::new();
