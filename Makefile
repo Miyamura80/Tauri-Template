@@ -250,8 +250,8 @@ link-check: ## Check for broken links in markdown files
 	@if command -v lychee > /dev/null 2>&1; then \
 		lychee .; \
 	else \
-		echo "$(YELLOW)⚠️ lychee not installed. Falling back to markdown-link-check...$(RESET)"; \
-		bunx markdown-link-check README.md; \
+		echo "$(YELLOW)⚠️ lychee not installed. Falling back to docs lint script...$(RESET)"; \
+		cd docs && bun run lint:links; \
 	fi
 	@echo "$(GREEN)✅ Link check completed.$(RESET)"
 
