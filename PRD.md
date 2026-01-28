@@ -87,6 +87,9 @@ Refactor the existing Python-based Tauri template into a native Rust/Tauri archi
 - [ ] Create a React Hook `useConfig` in `src/hooks/` to invoke the command.
 - [ ] Verify application runs with `bun run tauri dev`.
 
+### Phase 6: Future Rust Enhancements
+- [ ] Rewrite `make banner` and `make logo` logic in Rust to eliminate the remaining `uv`/Python dependency for asset generation.
+
 ## 5. Success Criteria
 - [ ] `bun run tauri dev` starts the application without errors.
 - [ ] Rust tests (`cargo test`) pass and cover the logic previously held in `tests/`.
