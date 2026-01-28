@@ -1,12 +1,7 @@
 name: Link Check (Lychee)
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-  schedule:
-    - cron: "0 0 * * 1" # Run weekly on Mondays
+  workflow_dispatch: # Disable automatic runs for now
 
 jobs:
   lychee:
