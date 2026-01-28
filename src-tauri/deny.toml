@@ -10,8 +10,8 @@ ignore = [
 ]
 
 [licenses]
-# The default policy for licenses not explicitly allowed or denied
-default = "deny"
+# The policy for licenses not explicitly allowed or denied
+unallowed = "deny"
 allow = [
     "MIT",
     "Apache-2.0",
