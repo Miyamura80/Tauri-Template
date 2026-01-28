@@ -23,9 +23,6 @@ allow = [
     "Unicode-3.0",
     "0BSD",
 ]
-deny = [
-    "unlicensed",
-]
 
 [bans]
 multiple-versions = "warn"
