@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Link Checker
-        uses: lycheeverify/lychee-action@v2.3.0
+        uses: lychee-app/lychee-action@v2
         with:
           args: --verbose --no-progress .
         env:
