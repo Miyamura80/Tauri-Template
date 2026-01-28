@@ -72,6 +72,7 @@ init: ## Initialize project (usage: make init name=my-project description="my de
 	@sed -i.bak "s/\"productName\": \"tauri-app\"/\"productName\": \"$(name)\"/" src-tauri/tauri.conf.json && rm src-tauri/tauri.conf.json.bak
 	@sed -i.bak "s/name = \"tauri-app\"/name = \"$(name)\"/" src-tauri/Cargo.toml && rm src-tauri/Cargo.toml.bak
 	@sed -i.bak "s/# Python-Template/# $(name)/" README.md && rm README.md.bak
+	@sed -i.bak "s/<b>Opinionated Python project stack. 🔋 Batteries included. <\/b>/<b>$(description)<\/b>/" README.md && rm README.md.bak
 	@echo "$(GREEN)✅ Updated project name and description.$(RESET)"
 
 banner: check_uv ## Generate project banner image (requires Python)
