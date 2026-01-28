@@ -3747,6 +3747,7 @@ name = "tauri-app"
 version = "0.1.0"
 dependencies = [
  "config",
+ "regex",
  "serde",
  "serde_json",
  "serde_yaml",

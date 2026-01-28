@@ -19,6 +19,10 @@ allow = [
     "Zlib",
     "MPL-2.0",
     "Unicode-DFS-2016",
+    "ISC",
+    "OpenSSL",
+    "Unicode-3.0",
+    "0BSD",
 ]
 
 [bans]
