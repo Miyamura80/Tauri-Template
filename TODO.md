@@ -9,4 +9,3 @@
 
 ## Technical Debt / Cleanup
 
-- [ ] Remove legacy Python scripts in `init/` once Rust/Node equivalents are implemented (Phase 6).
