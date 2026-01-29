@@ -229,7 +229,17 @@ mod tests {
         let config = load_config().expect("Should load config");
         assert_eq!(config.llm_config.cache_enabled, false);
 
+        // Test boolean coercion from '1' and '0' (porting from Python tests)
+        env::set_var("APP__LOGGING__FORMAT__LOCATION__ENABLED", "1");
+        let config = load_config().expect("Should load config");
+        assert_eq!(config.logging.format.location.enabled, true);
+
+        env::set_var("APP__LOGGING__FORMAT__LOCATION__ENABLED", "0");
+        let config = load_config().expect("Should load config");
+        assert_eq!(config.logging.format.location.enabled, false);
+
         env::remove_var("APP__LLM_CONFIG__CACHE_ENABLED");
+        env::remove_var("APP__LOGGING__FORMAT__LOCATION__ENABLED");
     }
 
     #[test]
@@ -241,6 +251,12 @@ mod tests {
         let config = load_config().expect("Should load config");
         assert_eq!(config.default_llm.default_temperature, 0.95);
         assert_eq!(config.llm_config.retry.max_attempts, 10);
+
+        // Test float-to-int coercion if applicable (usually handled by serde)
+        // Here we test string-to-numeric coercion specifically.
+        env::set_var("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS", "5");
+        let config = load_config().expect("Should load config");
+        assert_eq!(config.llm_config.retry.max_attempts, 5);
 
         env::remove_var("APP__DEFAULT_LLM__DEFAULT_TEMPERATURE");
         env::remove_var("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS");
@@ -254,6 +270,21 @@ mod tests {
         let config = load_config().expect("Should load config");
         assert_eq!(config.dev_env, "production");
         env::remove_var("APP__DEV_ENV");
+    }
+
+    #[test]
+    #[serial]
+    fn test_api_key_loading() {
+        // Test that API keys are loaded from environment variables (APP__ prefix)
+        env::set_var("APP__OPENAI_API_KEY", "test-openai-key");
+        env::set_var("APP__ANTHROPIC_API_KEY", "test-anthropic-key");
+
+        let config = load_config().expect("Should load config");
+        assert_eq!(config.openai_api_key(), Some("test-openai-key"));
+        assert_eq!(config.anthropic_api_key(), Some("test-anthropic-key"));
+
+        env::remove_var("APP__OPENAI_API_KEY");
+        env::remove_var("APP__ANTHROPIC_API_KEY");
     }
 
     #[test]
