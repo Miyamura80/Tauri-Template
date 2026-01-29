@@ -201,30 +201,29 @@ fn save_ico(image: &RgbaImage, path: &Path) -> Result<()> {
 
 fn remove_greenscreen(image: &mut RgbaImage, tolerance: i32) {
     for pixel in image.pixels_mut() {
-        let [mut r, mut g, mut b, mut a] = pixel.0;
-        let r = r as f32;
-        let g = g as f32;
-        let b = b as f32;
-        let alpha = a as f32;
-        let green_high = g > 180.0;
-        let green_dominant =
-            g > r + f32::from(tolerance) + 20.0 && g > b + f32::from(tolerance) + 20.0;
+        let [r, g, b, mut a] = pixel.0;
+        let mut red = r as f32;
+        let mut green = g as f32;
+        let mut blue = b as f32;
+        let tolerance_f = tolerance as f32;
+
+        let green_high = green > 180.0;
+        let green_dominant = green > red + tolerance_f + 20.0 && green > blue + tolerance_f + 20.0;
         if green_high && green_dominant {
             a = 0;
         }
 
         let visible = a > 128;
-        let has_green_tint = g > r + 20.0 && g > b + 20.0;
+        let has_green_tint = green > red + 20.0 && green > blue + 20.0;
         if visible && has_green_tint {
-            let avg_rb = (r + b) / 2.0;
-            let new_g = (g * 0.6).min(avg_rb);
-            g = new_g;
+            let avg_rb = (red + blue) / 2.0;
+            green = (green * 0.6).min(avg_rb);
         }
 
         pixel.0 = [
-            r.clamp(0.0, 255.0) as u8,
-            g.clamp(0.0, 255.0) as u8,
-            b.clamp(0.0, 255.0) as u8,
+            red.clamp(0.0, 255.0) as u8,
+            green.clamp(0.0, 255.0) as u8,
+            blue.clamp(0.0, 255.0) as u8,
             a,
         ];
     }
