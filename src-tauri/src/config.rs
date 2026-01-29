@@ -166,7 +166,9 @@ pub struct RedactionPattern {
 static CONFIG: OnceLock<AppConfig> = OnceLock::new();
 
 pub fn get_config() -> &'static AppConfig {
-    CONFIG.get_or_init(|| load_config().expect("Failed to load configuration"))
+    CONFIG.get_or_init(|| {
+        load_config().unwrap_or_else(|e| panic!("Failed to load configuration: {}", e))
+    })
 }
 
 fn load_config() -> Result<AppConfig, ConfigError> {
