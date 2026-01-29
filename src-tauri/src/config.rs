@@ -192,6 +192,19 @@ mod tests {
     use serial_test::serial;
     use std::env;
 
+    struct EnvGuard(&'static str);
+    impl EnvGuard {
+        fn new(key: &'static str, val: &str) -> Self {
+            env::set_var(key, val);
+            Self(key)
+        }
+    }
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            env::remove_var(self.0);
+        }
+    }
+
     #[test]
     #[serial]
     fn test_load_config() {
@@ -212,43 +225,46 @@ mod tests {
     #[serial]
     fn test_env_var_override_precedence() {
         // YAML value is "gemini/gemini-3-flash-preview"
-        env::set_var("APP__MODEL_NAME", "override-model");
+        let _guard = EnvGuard::new("APP__MODEL_NAME", "override-model");
 
         let config = load_config().expect("Should load config");
         assert_eq!(config.model_name, "override-model");
-
-        env::remove_var("APP__MODEL_NAME");
     }
 
     #[test]
     #[serial]
     fn test_type_coercion_boolean() {
-        env::set_var("APP__LLM_CONFIG__CACHE_ENABLED", "true");
-        let config = load_config().expect("Should load config");
-        assert_eq!(config.llm_config.cache_enabled, true);
+        {
+            let _guard = EnvGuard::new("APP__LLM_CONFIG__CACHE_ENABLED", "true");
+            let config = load_config().expect("Should load config");
+            assert_eq!(config.llm_config.cache_enabled, true);
+        }
 
-        env::set_var("APP__LLM_CONFIG__CACHE_ENABLED", "false");
-        let config = load_config().expect("Should load config");
-        assert_eq!(config.llm_config.cache_enabled, false);
+        {
+            let _guard = EnvGuard::new("APP__LLM_CONFIG__CACHE_ENABLED", "false");
+            let config = load_config().expect("Should load config");
+            assert_eq!(config.llm_config.cache_enabled, false);
+        }
 
         // Test boolean coercion from '1' and '0' (porting from Python tests)
-        env::set_var("APP__LOGGING__FORMAT__LOCATION__ENABLED", "1");
-        let config = load_config().expect("Should load config");
-        assert_eq!(config.logging.format.location.enabled, true);
+        {
+            let _guard = EnvGuard::new("APP__LOGGING__FORMAT__LOCATION__ENABLED", "1");
+            let config = load_config().expect("Should load config");
+            assert_eq!(config.logging.format.location.enabled, true);
+        }
 
-        env::set_var("APP__LOGGING__FORMAT__LOCATION__ENABLED", "0");
-        let config = load_config().expect("Should load config");
-        assert_eq!(config.logging.format.location.enabled, false);
-
-        env::remove_var("APP__LLM_CONFIG__CACHE_ENABLED");
-        env::remove_var("APP__LOGGING__FORMAT__LOCATION__ENABLED");
+        {
+            let _guard = EnvGuard::new("APP__LOGGING__FORMAT__LOCATION__ENABLED", "0");
+            let config = load_config().expect("Should load config");
+            assert_eq!(config.logging.format.location.enabled, false);
+        }
     }
 
     #[test]
     #[serial]
     fn test_type_coercion_numeric() {
-        env::set_var("APP__DEFAULT_LLM__DEFAULT_TEMPERATURE", "0.95");
-        env::set_var("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS", "10");
+        let _guard1 = EnvGuard::new("APP__DEFAULT_LLM__DEFAULT_TEMPERATURE", "0.95");
+        let _guard2 = EnvGuard::new("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS", "10");
 
         let config = load_config().expect("Should load config");
         assert_eq!(config.default_llm.default_temperature, 0.95);
@@ -256,37 +272,30 @@ mod tests {
 
         // Test float-to-int coercion if applicable (usually handled by serde)
         // Here we test string-to-numeric coercion specifically.
-        env::set_var("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS", "5");
+        let _guard3 = EnvGuard::new("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS", "5");
         let config = load_config().expect("Should load config");
         assert_eq!(config.llm_config.retry.max_attempts, 5);
-
-        env::remove_var("APP__DEFAULT_LLM__DEFAULT_TEMPERATURE");
-        env::remove_var("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS");
     }
 
     #[test]
     #[serial]
     fn test_dev_env_override() {
         // Field name is lowercase `dev_env`
-        env::set_var("APP__DEV_ENV", "production");
+        let _guard = EnvGuard::new("APP__DEV_ENV", "production");
         let config = load_config().expect("Should load config");
         assert_eq!(config.dev_env, "production");
-        env::remove_var("APP__DEV_ENV");
     }
 
     #[test]
     #[serial]
     fn test_api_key_loading() {
         // Test that API keys are loaded from environment variables (APP__ prefix)
-        env::set_var("APP__OPENAI_API_KEY", "test-openai-key");
-        env::set_var("APP__ANTHROPIC_API_KEY", "test-anthropic-key");
+        let _guard1 = EnvGuard::new("APP__OPENAI_API_KEY", "test-openai-key");
+        let _guard2 = EnvGuard::new("APP__ANTHROPIC_API_KEY", "test-anthropic-key");
 
         let config = load_config().expect("Should load config");
         assert_eq!(config.openai_api_key(), Some("test-openai-key"));
         assert_eq!(config.anthropic_api_key(), Some("test-anthropic-key"));
-
-        env::remove_var("APP__OPENAI_API_KEY");
-        env::remove_var("APP__ANTHROPIC_API_KEY");
     }
 
     #[test]
