@@ -111,13 +111,8 @@ Report any branches deleted.
 
 ### 10. Sync dependencies
 
-Detect package manager and sync:
-
-- If `uv.lock` exists: `uv sync`
-- Else if `bun.lockb` exists: `bun install`
-- Else if `package-lock.json` exists: `npm install`
-- Else if `requirements.txt` exists: `pip install -r requirements.txt`
-- Else: Skip dependency sync
+- Run `bun install` at the repository root so `bun.lock` (and `node_modules`) stay in sync.
+- If the `docs/` workspace has its own `bun.lock`, run `cd docs && bun install` as well.
 
 ### 11. Git garbage collection
 

@@ -1,9 +1,9 @@
 ---
 title: Quick Start
-description: Get started with this Python template
+description: Get started with this Tauri + Bun template
 ---
 
-Welcome to the docs! Follow these steps to get started with this Python template.
+Welcome to the docs! Follow these steps to bootstrap the Tauri + React starter.
 
 ## Quick Start
 
@@ -12,15 +12,16 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 <Steps>
 <Step>
 
-### Setup Environment
+### Install Dependencies
 
-Create and activate your virtual environment using `uv`:
+Install Bun packages for both workspaces:
 
 ```bash
-make setup
+bun install
+cd docs && bun install # run in the docs workspace when you update the site
 ```
 
-This will create a `.venv` directory and sync all dependencies from `pyproject.toml`.
+The root `bun.lock` (and `docs/bun.lock`) become the single source of truth.
 
 </Step>
 
@@ -28,13 +29,9 @@ This will create a `.venv` directory and sync all dependencies from `pyproject.t
 
 ### Configure Settings
 
-Copy the example environment file and add your API keys:
+Edit `src-tauri/global_config.yaml` and override values with `APP__...` environment variables via `bun run tauri dev` or Bun scripts.
 
-```bash
-cp .env.example .env
-```
-
-Edit `common/global_config.yaml` to customize configuration values for your project.
+You can also expose sanitized configuration on the frontend via the built-in `get_app_config` command and `useConfig()` hook.
 
 </Step>
 
@@ -42,16 +39,11 @@ Edit `common/global_config.yaml` to customize configuration values for your proj
 
 ### Run the Application
 
-Execute the main application:
+Run the frontend dev server in isolation or launch Tauri end-to-end.
 
 ```bash
-make all
-```
-
-Or run specific Python files directly:
-
-```bash
-uv run python src/main.py
+bun run dev          # frontend-only (React + Vite)
+bun run tauri dev     # native app powered by Tauri + Rust
 ```
 
 </Step>
@@ -60,16 +52,13 @@ uv run python src/main.py
 
 ### Run Tests
 
-Verify everything is working by running the test suite:
+Keep the repo healthy with linting and tests:
 
 ```bash
-make test
-```
-
-Run code quality checks:
-
-```bash
-make ci
+bun run check        # frontend/TS lint & formatting via Biome
+cd docs && bun run lint:links
+cd src-tauri && cargo test
+bun run knip         # dependency linting
 ```
 
 </Step>

@@ -23,6 +23,7 @@ What actually happened.
 
 ## Environment
 
-- Python version:
+- Bun version:
 - OS:
+- Tauri version:
 - Relevant config:

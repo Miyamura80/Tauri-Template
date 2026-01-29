@@ -2,6 +2,7 @@ import { RootProvider } from "fumadocs-ui/provider/next";
 import "./global.css";
 import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
+import type { ReactNode } from "react";
 
 const archivo = Archivo({
 	subsets: ["latin"],
@@ -9,8 +10,8 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
-	title: "Python Template Documentation",
-	description: "Super-opinionated Python stack for fast development",
+	title: "Tauri Template Documentation",
+	description: "Opinionated starter for Tauri + React + Bun applications",
 	icons: {
 		icon: [
 			{
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function Layout({ children }: LayoutProps<"/">) {
+export default function Layout({ children }: { children: ReactNode }) {
 	return (
 		<html lang="en" className={archivo.className} suppressHydrationWarning>
 			<body className="flex flex-col min-h-screen" suppressHydrationWarning>
