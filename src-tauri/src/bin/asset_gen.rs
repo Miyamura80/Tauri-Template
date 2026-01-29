@@ -1,13 +1,15 @@
 use std::fs::{self, File};
-use std::io::{Cursor, Write};
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use base64::{engine::general_purpose, Engine as _};
 use clap::{Parser, Subcommand};
 use image::codecs::ico::IcoEncoder;
+use image::codecs::png::PngEncoder;
 use image::imageops::{resize, FilterType};
-use image::{ColorType, DynamicImage, ImageBuffer, ImageOutputFormat, Rgba, RgbaImage};
+use image::{ColorType, DynamicImage, GenericImage, ImageBuffer, Rgba, RgbaImage};
+use image::ImageEncoder;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -84,7 +86,6 @@ async fn run_logo(
     let project_name = project_name.unwrap_or_else(|| {
         read_project_name(&workspace).unwrap_or_else(|_| "Tauri-Template".into())
     });
-    let suggestion = suggestion.unwrap_or_default();
     let target = output_dir.unwrap_or_else(|| workspace.join("docs").join("public"));
     fs::create_dir_all(&target).context("Failed to create output directory")?;
 
@@ -158,7 +159,6 @@ async fn run_banner(
     let title = title.unwrap_or_else(|| {
         read_project_name(&workspace).unwrap_or_else(|_| "Tauri-Template".into())
     });
-    let suggestion = suggestion.unwrap_or_default();
     let target = output_dir.unwrap_or_else(|| workspace.join("media"));
     fs::create_dir_all(&target).context("Failed to create banner output directory")?;
 
@@ -193,39 +193,41 @@ fn save_png(image: &RgbaImage, path: &Path) -> Result<()> {
 fn save_ico(image: &RgbaImage, path: &Path) -> Result<()> {
     let file = File::create(path)
         .with_context(|| format!("Failed to open ICO file at {}", path.display()))?;
-    let mut encoder = IcoEncoder::new(file);
+    let encoder = IcoEncoder::new(file);
     encoder
-        .encode(&image, image.width(), image.height(), ColorType::Rgba8)
+        .write_image(
+            image.as_raw(),
+            image.width(),
+            image.height(),
+            ColorType::Rgba8.into(),
+        )
         .with_context(|| format!("Failed to write ICO at {}", path.display()))
 }
 
 fn remove_greenscreen(image: &mut RgbaImage, tolerance: i32) {
     for pixel in image.pixels_mut() {
-        let [r, g, b, mut a] = pixel.0;
-        let mut red = r as f32;
-        let mut green = g as f32;
-        let mut blue = b as f32;
+        let [r, mut g, b, mut a] = pixel.0;
         let tolerance_f = tolerance as f32;
+        let r_f = r as f32;
+        let g_f = g as f32;
+        let b_f = b as f32;
 
-        let green_high = green > 180.0;
-        let green_dominant = green > red + tolerance_f + 20.0 && green > blue + tolerance_f + 20.0;
+        let green_high = g_f > 180.0;
+        let green_dominant =
+            g_f > r_f + tolerance_f + 20.0 && g_f > b_f + tolerance_f + 20.0;
         if green_high && green_dominant {
             a = 0;
         }
 
         let visible = a > 128;
-        let has_green_tint = green > red + 20.0 && green > blue + 20.0;
+        let has_green_tint = g_f > r_f + 20.0 && g_f > b_f + 20.0;
         if visible && has_green_tint {
-            let avg_rb = (red + blue) / 2.0;
-            green = (green * 0.6).min(avg_rb);
+            let avg_rb = (r_f + b_f) / 2.0;
+            let new_g = (g_f * 0.6).min(avg_rb);
+            g = new_g.clamp(0.0, 255.0) as u8;
         }
 
-        pixel.0 = [
-            red.clamp(0.0, 255.0) as u8,
-            green.clamp(0.0, 255.0) as u8,
-            blue.clamp(0.0, 255.0) as u8,
-            a,
-        ];
+        pixel.0 = [r, g, b, a];
     }
 }
 
@@ -241,7 +243,9 @@ fn ensure_square(image: &RgbaImage) -> RgbaImage {
     let mut square = ImageBuffer::from_pixel(size, size, Rgba([255, 255, 255, 0]));
     let offset_x = (size - image.width()) / 2;
     let offset_y = (size - image.height()) / 2;
-    square.copy_from(image, offset_x, offset_y).unwrap_or(());
+    square
+        .copy_from(image, offset_x, offset_y)
+        .expect("Failed to center image in square canvas");
     square
 }
 
@@ -351,9 +355,10 @@ impl GeminiClient {
             .await
             .context("Failed to reach Gemini API")?;
 
-        if !response.status().is_success() {
+        let status = response.status();
+        if !status.is_success() {
             let body: String = response.text().await.unwrap_or_default();
-            error!("Gemini returned {}: {}", response.status(), body);
+            error!("Gemini returned {}: {}", status, body);
             return Err(anyhow!("Gemini request failed"));
         }
 
@@ -365,10 +370,14 @@ impl GeminiClient {
 }
 
 fn inline_image_from_rgba(image: &RgbaImage) -> Result<InlineImage> {
-    let dynamic = DynamicImage::ImageRgba8(image.clone());
     let mut buffer = Vec::new();
-    dynamic
-        .write_to(&mut Cursor::new(&mut buffer), ImageOutputFormat::Png)
+    PngEncoder::new(Cursor::new(&mut buffer))
+        .write_image(
+            image.as_raw(),
+            image.width(),
+            image.height(),
+            ColorType::Rgba8.into(),
+        )
         .context("Failed to encode reference image")?;
     Ok(InlineImage {
         mime_type: "image/png".into(),
