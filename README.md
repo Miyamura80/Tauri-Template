@@ -60,6 +60,11 @@ Modern stack for cross-platform desktop application development.
    bun run tauri build
    ```
 
+## Asset Generation
+
+- Use `make logo` / `make banner` to regenerate branding assets once per project. The targets run the Rust `asset-gen` CLI and require `APP__GEMINI_API_KEY` (set via `.env`).
+- Logos/icons land under `docs/public/`, while the banner image is written to `media/banner.png`.
+
 ## Configuration
 
 Configuration is handled in Rust and exposed to the frontend via Tauri commands.

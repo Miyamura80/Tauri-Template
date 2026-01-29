@@ -29,6 +29,16 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 regex = "1.10"
 rand = "0.8"
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+image = { version = "0.25", features = ["png", "ico"] }
+anyhow = "1.0"
+base64 = "0.21"
 
 [dev-dependencies]
 serial_test = "3"
+
+[[bin]]
+name = "asset-gen"
+path = "src/bin/asset_gen.rs"
