@@ -46,52 +46,52 @@ Refactor the existing Python-based Tauri template into a native Rust/Tauri archi
 
 ### Phase 1: Documentation & Standards
 *Establish the "Bun only" rule first.*
-- [ ] Update `CLAUDE.md` to specify `bun` commands and remove Python references.
-- [ ] Verify `AGENTS.md` (symlink) updates automatically.
-- [ ] Update `package.json` scripts to ensure they don't default to npm/node if specific runners are needed (though `bun run` usually handles this).
+- [x] Update `CLAUDE.md` to specify `bun` commands and remove Python references.
+- [x] Verify `AGENTS.md` (symlink) updates automatically.
+- [x] Update `package.json` scripts to ensure they don't default to npm/node if specific runners are needed (though `bun run` usually handles this).
 
 ### Phase 2: Rust Foundation (Config & Logging)
 *Establish Rust as the backend source of truth.*
-- [ ] Add crates to `src-tauri/Cargo.toml`:
+- [x] Add crates to `src-tauri/Cargo.toml`:
     - `config`
     - `tracing`, `tracing-subscriber`
     - `serde`, `serde_json`, `serde_yaml`
-- [ ] Create `src-tauri/src/config.rs`:
+- [x] Create `src-tauri/src/config.rs`:
     - Port `python_common/config_models.py` to Rust structs using `#[derive(Deserialize)]`.
-- [ ] Implement Config Loader in Rust:
+- [x] Implement Config Loader in Rust:
     - Logic to read `global_config.yaml` and environment variables.
-- [ ] Create `src-tauri/src/logging.rs`:
+- [x] Create `src-tauri/src/logging.rs`:
     - Implement `tracing` subscriber to replace `loguru`.
 
 ### Phase 3: Test Migration
 *Ensure reliability before deleting Python code.*
-- [ ] Analyze `tests/` for critical logic (e.g., `test_env_var_loading.py`, `test_pydantic_type_coercion.py`).
-- [ ] Create `src-tauri/tests/` or unit tests within `src-tauri/src/`.
-- [ ] Write Rust tests (`#[test]`) that verify:
+- [x] Analyze `tests/` for critical logic (e.g., `test_env_var_loading.py`, `test_pydantic_type_coercion.py`).
+- [x] Create `src-tauri/tests/` or unit tests within `src-tauri/src/`.
+- [x] Write Rust tests (`#[test]`) that verify:
     - Config loads correctly from YAML.
     - Environment variables override config.
     - Type coercion works as expected (Serde handling).
 
 ### Phase 4: Cleanup & Removal
 *Remove legacy Python code.*
-- [ ] Move `python_common/global_config.yaml` to `src-tauri/`.
-- [ ] Delete `src_python/`, `python_common/`, `python_utils/`.
-- [ ] Delete `init/` (Asset generation scripts).
-- [ ] Delete `tests/` (Python tests).
-- [ ] Remove `pyproject.toml`, `uv.lock`, `pytest.ini`.
-- [ ] Clean up `Makefile` (remove Python targets).
+- [x] Move `python_common/global_config.yaml` to `src-tauri/`.
+- [x] Delete `src_python/`, `python_common/`, `python_utils/`.
+- [x] Delete `init/` (Asset generation scripts).
+- [x] Delete `tests/` (Python tests).
+- [x] Remove `pyproject.toml`, `uv.lock`, `pytest.ini`.
+- [x] Clean up `Makefile` (remove Python targets).
 
 ### Phase 5: Frontend Integration
 *Connect React to Rust.*
-- [ ] Create a Tauri Command `get_config` in `src-tauri/src/lib.rs`.
-- [ ] Create a React Hook `useConfig` in `src/hooks/` to invoke the command.
-- [ ] Verify application runs with `bun run tauri dev`.
+- [x] Create a Tauri Command `get_config` in `src-tauri/src/lib.rs`.
+- [x] Create a React Hook `useConfig` in `src/hooks/` to invoke the command.
+- [x] Verify application runs with `bun run tauri dev`.
 
 ### Phase 6: Future Rust Enhancements
 - [ ] Rewrite `make banner` and `make logo` logic in Rust to eliminate the remaining `uv`/Python dependency for asset generation.
 
 ## 5. Success Criteria
-- [ ] `bun run tauri dev` starts the application without errors.
-- [ ] Rust tests (`cargo test`) pass and cover the logic previously held in `tests/`.
-- [ ] No Python files (`.py`) remain in the repository (except maybe `scripts/` if strictly necessary, but ideally converted).
-- [ ] `CLAUDE.md` accurately reflects the new architecture.
+- [x] `bun run tauri dev` starts the application without errors.
+- [x] Rust tests (`cargo test`) pass and cover the logic previously held in `tests/`.
+- [x] No Python files (`.py`) remain in the repository (except maybe `scripts/` if strictly necessary, but ideally converted).
+- [x] `CLAUDE.md` accurately reflects the new architecture.

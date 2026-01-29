@@ -20,3 +20,10 @@
 - [ ] Type ignore comments in `utils/llm/dspy_langfuse.py` - indicates type system gaps
 - [ ] Limited test coverage for `init/`, `utils/llm/` directories
 - [ ] Feature flag not checked in all fallback paths
+
+## Future Improvements
+
+- [ ] Rename `src-tauri/src/config.rs` to `global_config.rs`.
+- [ ] Automate Knip: Run `.github/workflows/knip.yml` (create if needed) on PR and push.
+- [ ] Automate Link Check: Run `.github/workflows/link_check.yml` (create if needed) weekly.
+- [ ] Test Organization: Separate flaky, fast, and nondeterministic tests in the Rust test suite.
