@@ -96,6 +96,10 @@ pub fn init_logging() {
     let show_line = location.show_line;
     let show_target = location.show_function; // Map show_function to tracing's target display
 
+    // TODO: Implement per-level location display control (show_for_info, show_for_debug, etc.)
+    // in Phase 4. Currently, location settings are applied globally if enabled.
+    // This requires separate layers for each level using with_filter().
+
     // Setup redaction patterns
     let mut patterns = Vec::new();
     if config.logging.redaction.enabled {
