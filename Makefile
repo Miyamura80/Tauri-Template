@@ -154,7 +154,7 @@ lint: ## Lint code with Biome and Clippy
 
 knip: ## Find unused files, dependencies, and exports
 	@echo "$(YELLOW)🔍 Running Knip...$(RESET)"
-	@bun install >/dev/null 2>&1 || true
+	@bun install --force >/dev/null 2>&1 || true
 	bun run knip
 	@echo "$(GREEN)✅ Knip completed.$(RESET)"
 
