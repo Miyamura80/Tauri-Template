@@ -64,7 +64,7 @@ Modern stack for cross-platform desktop application development.
 
 Configuration is handled in Rust and exposed to the frontend via Tauri commands.
 
-- **Rust**: Access via `crate::config::get_config()`
+- **Rust**: Access via `crate::global_config::get_config()`
 - **Frontend**: Access via `useConfig()` hook
 
 ### Environment Variables

@@ -1,4 +1,4 @@
-use crate::config::get_config;
+use crate::global_config::get_config;
 use regex::Regex;
 use std::io;
 use std::sync::OnceLock;

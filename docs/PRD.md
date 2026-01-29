@@ -37,7 +37,7 @@ Refactor the existing Python-based Tauri template into a native Rust/Tauri archi
 │   ├── global_config.yaml  # Moved from python_common/
 │   └── src/
 │       ├── lib.rs
-│       ├── config.rs       # New: Rust config structs (serde)
+│       ├── global_config.rs # New: Rust config structs (serde)
 │       └── logging.rs      # New: Tracing setup
 └── ...                     # Python directories removed
 ```
@@ -56,7 +56,7 @@ Refactor the existing Python-based Tauri template into a native Rust/Tauri archi
     - `config`
     - `tracing`, `tracing-subscriber`
     - `serde`, `serde_json`, `serde_yaml`
-- [x] Create `src-tauri/src/config.rs`:
+- [x] Create `src-tauri/src/global_config.rs`:
     - Port `python_common/config_models.py` to Rust structs using `#[derive(Deserialize)]`.
 - [x] Implement Config Loader in Rust:
     - Logic to read `global_config.yaml` and environment variables.

@@ -1,7 +1,7 @@
-pub mod config;
+pub mod global_config;
 pub mod logging;
 
-use config::FrontendConfig;
+use global_config::FrontendConfig;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -11,7 +11,7 @@ fn greet(name: &str) -> String {
 
 #[tauri::command]
 fn get_app_config() -> FrontendConfig {
-    config::get_config().into()
+    global_config::get_config().into()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

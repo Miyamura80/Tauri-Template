@@ -3,12 +3,13 @@
 ## Getting Started
 
 1.  **Prerequisites**:
-    *   Python >= 3.12
-    *   `uv` (for dependency management)
+    *   Rust >= 1.75
+    *   Bun >= 1.0
+    *   System dependencies for Tauri (see [Tauri docs](https://tauri.app/v2/guides/getting-started/prerequisites))
 
 2.  **Setup**:
     ```bash
-    make setup
+    bun install
     ```
 
 3.  **Run Tests**:
@@ -24,12 +25,13 @@
     ```bash
     make ci
     ```
-    This runs formatting, linting, type checking, and dead code detection.
+    This runs formatting (Biome + cargo fmt), linting (Biome + Clippy), dead code detection (Knip), and tests.
 
 ## Code Style
 
-*   Follow the existing conventions (snake_case for functions, CamelCase for classes).
-*   Use `ruff` for linting and formatting (handled by `make fmt` and `make ruff`).
+*   **Frontend**: React + TypeScript, follow Biome's rules.
+*   **Backend**: Rust, follow standard idiomatic Rust and `cargo clippy`.
+*   Use Biome for formatting and linting (handled by `make fmt` and `make lint`).
 *   Add tests for new features.
 
 ## Pull Requests

@@ -1,7 +1,9 @@
 name: Link Check (Lychee)
 
 on:
-  workflow_dispatch: # Disable automatic runs for now
+  schedule:
+    - cron: '0 0 * * 0' # Weekly at midnight on Sunday
+  workflow_dispatch:
 
 jobs:
   lychee:

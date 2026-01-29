@@ -1,7 +1,11 @@
 name: Dead Code Check (Knip)
 
 on:
-  workflow_dispatch: # Disable automatic runs for now
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   knip:
