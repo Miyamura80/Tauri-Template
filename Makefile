@@ -76,28 +76,18 @@ init: ## Initialize project (usage: make init name=my-project description="my de
 	@sed -i.bak "s/<b>agent ready tauri template<\/b>/<b>$(description)<\/b>/" README.md && rm README.md.bak
 	@echo "$(GREEN)✅ Updated project name, identifier, and description.$(RESET)"
 
-### Asset Generation (Legacy Python - to be replaced in next PR)
+### Asset Generation
 .PHONY: banner logo
 
-banner: check_uv ## Generate project banner image (Legacy - to be replaced)
+banner: ## Generate project banner image (requires APP__GEMINI_API_KEY)
 	@echo "$(YELLOW)🔍Generating banner...$(RESET)"
-	@# Note: This currently requires legacy init/ directory which was removed.
-	@# Re-implementation in Rust/Node is planned for the next PR.
-	@uv run python -m init.generate_banner || echo "$(RED)Failed: init module not found. To be fixed in next PR.$(RESET)"
-	@echo "$(GREEN)✅Banner generated.$(RESET)"
+	@cd src-tauri && cargo run --bin asset-gen -- banner
+	@echo "$(GREEN)✅Banner generated at media/banner.png$(RESET)"
 
-logo: check_uv ## Generate logo and favicon for docs (Legacy - to be replaced)
+logo: ## Generate logo, icons, and favicon (requires APP__GEMINI_API_KEY)
 	@echo "$(YELLOW)🔍Generating logo and favicon...$(RESET)"
-	@# Note: This currently requires legacy init/ directory which was removed.
-	@# Re-implementation in Rust/Node is planned for the next PR.
-	@uv run python -m init.generate_logo || echo "$(RED)Failed: init module not found. To be fixed in next PR.$(RESET)"
-	@echo "$(GREEN)✅Logo and favicon generated in docs/public/$(RESET)"
-
-check_uv:
-	@if ! command -v uv > /dev/null 2>&1; then \
-		echo "$(RED)uv is not installed. Please install uv to run Python-based asset generation.$(RESET)"; \
-		exit 1; \
-	fi
+	@cd src-tauri && cargo run --bin asset-gen -- logo
+	@echo "$(GREEN)✅Logo assets saved to docs/public/$(RESET)"
 
 
 
