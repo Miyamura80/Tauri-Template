@@ -76,7 +76,7 @@ Refactor the existing Python-based Tauri template into a native Rust/Tauri archi
 *Remove legacy Python code.*
 - [x] Move `python_common/global_config.yaml` to `src-tauri/`.
 - [x] Delete `src_python/`, `python_common/`, `python_utils/`.
-- [x] Delete `init/` (Asset generation scripts).
+- [ ] Delete `init/` (Asset generation scripts) - **Temporarily restored as legacy placeholders until Phase 6.**
 - [x] Delete `tests/` (Python tests).
 - [x] Remove `pyproject.toml`, `uv.lock`, `pytest.ini`.
 - [x] Clean up `Makefile` (remove Python targets).
