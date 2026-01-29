@@ -4,15 +4,15 @@
 # Project info (auto-detected, edit if needed)
 project:
   name: "Tauri-Template"
-  language: "Python"
+  language: "TypeScript/Rust"
   framework: ""
   description: ""  # Add a brief description
 
 # Commands (auto-detected from package.json/pyproject.toml)
 commands:
-  test: "pytest"
-  lint: "ruff check ."
-  build: ""
+  test: "make test"
+  lint: "make lint"
+  build: "make build"
 
 # Rules - instructions the AI MUST follow
 # These are injected into every prompt

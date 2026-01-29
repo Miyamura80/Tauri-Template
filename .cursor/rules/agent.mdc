@@ -4,7 +4,7 @@ alwaysApply: true
 
 After major changes always run:
 - `make fmt`
-- `make ruff`
-- `make vulture` 
+- `make lint`
+- `make knip`
 
 And if any issues rise, make sure you address them.
