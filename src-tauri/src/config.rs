@@ -19,15 +19,33 @@ pub struct AppConfig {
 
     // Environment variables (optional in config file, usually injected)
     #[serde(skip_serializing)]
-    pub openai_api_key: Option<String>,
+    openai_api_key: Option<String>,
     #[serde(skip_serializing)]
-    pub anthropic_api_key: Option<String>,
+    anthropic_api_key: Option<String>,
     #[serde(skip_serializing)]
-    pub groq_api_key: Option<String>,
+    groq_api_key: Option<String>,
     #[serde(skip_serializing)]
-    pub perplexity_api_key: Option<String>,
+    perplexity_api_key: Option<String>,
     #[serde(skip_serializing)]
-    pub gemini_api_key: Option<String>,
+    gemini_api_key: Option<String>,
+}
+
+impl AppConfig {
+    pub fn openai_api_key(&self) -> Option<&str> {
+        self.openai_api_key.as_deref()
+    }
+    pub fn anthropic_api_key(&self) -> Option<&str> {
+        self.anthropic_api_key.as_deref()
+    }
+    pub fn groq_api_key(&self) -> Option<&str> {
+        self.groq_api_key.as_deref()
+    }
+    pub fn perplexity_api_key(&self) -> Option<&str> {
+        self.perplexity_api_key.as_deref()
+    }
+    pub fn gemini_api_key(&self) -> Option<&str> {
+        self.gemini_api_key.as_deref()
+    }
 }
 
 /// A sanitized version of the configuration intended for exposure to the frontend.
@@ -155,13 +173,10 @@ fn load_config() -> Result<AppConfig, ConfigError> {
     let builder = Config::builder()
         // Load default config
         .add_source(File::with_name("src-tauri/global_config.yaml").required(false))
-        .add_source(File::with_name("global_config.yaml").required(false))
         // Load production config if in prod
         .add_source(File::with_name("src-tauri/production_config.yaml").required(false))
-        .add_source(File::with_name("production_config.yaml").required(false))
         // Load local override
         .add_source(File::with_name("src-tauri/.global_config.yaml").required(false))
-        .add_source(File::with_name(".global_config.yaml").required(false))
         // Load environment variables
         // Map nested env vars like APP__LOGGING__VERBOSE=true
         .add_source(Environment::with_prefix("APP").separator("__"));
@@ -229,6 +244,16 @@ mod tests {
 
         env::remove_var("APP__DEFAULT_LLM__DEFAULT_TEMPERATURE");
         env::remove_var("APP__LLM_CONFIG__RETRY__MAX_ATTEMPTS");
+    }
+
+    #[test]
+    #[serial]
+    fn test_dev_env_override() {
+        // Field name is lowercase `dev_env`
+        env::set_var("APP__DEV_ENV", "production");
+        let config = load_config().expect("Should load config");
+        assert_eq!(config.dev_env, "production");
+        env::remove_var("APP__DEV_ENV");
     }
 
     #[test]
