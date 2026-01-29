@@ -1,6 +1,8 @@
 pub mod global_config;
 pub mod logging;
 
+pub use global_config as config;
+
 use global_config::FrontendConfig;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/

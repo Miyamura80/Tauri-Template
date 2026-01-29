@@ -1,4 +1,0 @@
-{
-  "ignore": ["docs/**"],
-  "ignoreWorkspaces": ["docs"]
-}
