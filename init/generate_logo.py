@@ -1,3 +1,7 @@
+# LEGACY PYTHON SCRIPT
+# TODO: This script will be removed and replaced by a Rust/Node implementation in Phase 6.
+# Currently non-functional as dependencies (python_common, python_utils) have been removed.
+
 import asyncio
 from io import BytesIO
 from pathlib import Path

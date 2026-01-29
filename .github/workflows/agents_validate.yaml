@@ -7,14 +7,12 @@ on:
     paths:
       - 'AGENTS.md'
       - 'CLAUDE.md'
-      - 'scripts/validate_agents_md.py'
       - '.github/workflows/agents_validate.yaml'
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - 'AGENTS.md'
       - 'CLAUDE.md'
-      - 'scripts/validate_agents_md.py'
       - '.github/workflows/agents_validate.yaml'
   workflow_dispatch:
 
@@ -24,25 +22,25 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
-        token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Checkout submodules
+    - name: Validate sections
       run: |
-        git submodule init
-        git submodule update
-    - name: Read Python version
-      run: echo "PYTHON_VERSION=$(cat .python-version | tr -d '\n')" >> $GITHUB_ENV
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install uv
-      run: curl -LsSf https://astral.sh/uv/install.sh | sh
-    - name: Install dependencies
-      run: |
-        uv sync
-    - name: Validate AGENTS.md
-      run: |
-        make agents_validate
+        REQUIRED_SECTIONS=("Project Overview" "Common Commands" "Architecture" "Code Style" "Configuration Pattern")
+        FILE="CLAUDE.md"
+        if [ ! -f "$FILE" ]; then
+          echo "Error: $FILE not found."
+          exit 1
+        fi
+        
+        MISSING=0
+        for section in "${REQUIRED_SECTIONS[@]}"; do
+          if ! grep -q "^## $section" "$FILE"; then
+            echo "Error: Missing section '$section' in $FILE"
+            MISSING=1
+          fi
+        done
+        
+        if [ $MISSING -eq 1 ]; then
+          exit 1
+        fi
+        echo "Validation passed."

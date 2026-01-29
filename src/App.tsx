@@ -1,11 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
 import "./App.css";
+import reactLogo from "./assets/react.svg";
+import { useConfig } from "./hooks/useConfig";
 
 function App() {
 	const [greetMsg, setGreetMsg] = useState("");
 	const [name, setName] = useState("");
+	const { config } = useConfig();
 
 	async function greet() {
 		// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -15,6 +17,7 @@ function App() {
 	return (
 		<main className="container">
 			<h1>Welcome to Tauri + React</h1>
+			{config && <p>Using model: {config.model_name}</p>}
 
 			<div className="row">
 				<a href="https://vite.dev" target="_blank" rel="noopener">

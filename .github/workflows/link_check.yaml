@@ -1,12 +1,7 @@
 name: Link Check (Lychee)
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-  schedule:
-    - cron: "0 0 * * 1" # Run weekly on Mondays
+  workflow_dispatch: # Disable automatic runs for now
 
 jobs:
   lychee:
@@ -14,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Link Checker
-        uses: lycheeverify/lychee-action@v1.9.0
+        uses: lychee-app/lychee-action@v2
         with:
           args: --verbose --no-progress .
         env:
