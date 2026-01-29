@@ -8,8 +8,8 @@ use clap::{Parser, Subcommand};
 use image::codecs::ico::IcoEncoder;
 use image::codecs::png::PngEncoder;
 use image::imageops::{resize, FilterType};
-use image::{ColorType, DynamicImage, GenericImage, ImageBuffer, Rgba, RgbaImage};
 use image::ImageEncoder;
+use image::{ColorType, DynamicImage, GenericImage, ImageBuffer, Rgba, RgbaImage};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -213,8 +213,7 @@ fn remove_greenscreen(image: &mut RgbaImage, tolerance: i32) {
         let b_f = b as f32;
 
         let green_high = g_f > 180.0;
-        let green_dominant =
-            g_f > r_f + tolerance_f + 20.0 && g_f > b_f + tolerance_f + 20.0;
+        let green_dominant = g_f > r_f + tolerance_f + 20.0 && g_f > b_f + tolerance_f + 20.0;
         if green_high && green_dominant {
             a = 0;
         }
