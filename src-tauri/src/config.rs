@@ -1,7 +1,7 @@
 use config::{Config, ConfigError, Environment, File};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{OnceLock, RwLock};
+use std::sync::RwLock;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppConfig {
