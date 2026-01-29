@@ -134,8 +134,8 @@ async fn run_logo(
     let mut icon_dark = icon_light.clone();
     invert_colors(&mut icon_dark);
 
-    let icon_light_square = ensure_square(&icon_light);
-    let icon_dark_square = ensure_square(&icon_dark);
+    let icon_light_square = ensure_square(&icon_light)?;
+    let icon_dark_square = ensure_square(&icon_dark)?;
 
     let icon_light_512 = resize(&icon_light_square, 512, 512, FilterType::Lanczos3);
     let icon_dark_512 = resize(&icon_dark_square, 512, 512, FilterType::Lanczos3);
@@ -237,15 +237,15 @@ fn invert_colors(image: &mut RgbaImage) {
     }
 }
 
-fn ensure_square(image: &RgbaImage) -> RgbaImage {
+fn ensure_square(image: &RgbaImage) -> Result<RgbaImage> {
     let size = image.width().max(image.height());
     let mut square = ImageBuffer::from_pixel(size, size, Rgba([255, 255, 255, 0]));
     let offset_x = (size - image.width()) / 2;
     let offset_y = (size - image.height()) / 2;
     square
         .copy_from(image, offset_x, offset_y)
-        .expect("Failed to center image in square canvas");
-    square
+        .with_context(|| "Failed to center image in square canvas")?;
+    Ok(square)
 }
 
 fn workspace_root() -> Result<PathBuf> {
@@ -516,6 +516,7 @@ struct InlineData {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
 
     #[test]
     fn remove_greenscreen_hides_green_pixel() {
@@ -532,10 +533,11 @@ mod tests {
     }
 
     #[test]
-    fn ensure_square_adds_padding() {
+    fn ensure_square_adds_padding() -> Result<()> {
         let image = ImageBuffer::from_pixel(10, 20, Rgba([1, 2, 3, 4]));
-        let square = ensure_square(&image);
+        let square = ensure_square(&image)?;
         assert_eq!(square.width(), square.height());
         assert!(square.width() >= image.height());
+        Ok(())
     }
 }
