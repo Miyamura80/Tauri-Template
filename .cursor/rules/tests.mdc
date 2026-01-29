@@ -1,41 +1,39 @@
 ---
 description: On how to write tests
-globs: 
+globs: src-tauri/**/*.rs
 alwaysApply: true
 ---
 ## Writing tests
 
-Whenever implementing a new feature, always encourage the user to write a test.
+Whenever implementing a new feature in the Rust backend, always encourage the user to write a test.
 
-Tests are written using pytest. To add a new test, create a new file/directory in the `tests/` directory. Ensure, that whenever you create a new directory in the `tests/` directory, you also add a `tests/.../__init__.py` to the directory so python can recognize the test directory.
+Tests are typically written as unit tests within the same file or as integration tests in the `src-tauri/tests/` directory.
 
+### Unit Test structure
 
-### Test structure
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-Look at below example for how you should write tests.
-
-```python
-from tests.test_template import TestTemplate, slow_test, nondeterministic_test
-from python_common import global_config
-
-class TestSkeleton(TestTemplate):
-    # Initialize shared variables here for all tests
-    @pytest.fixture(autouse=True)
-    def setup_shared_variables(self, setup):
-        # Initialize shared attributes here
-        pass
-
-    # Actual test code here
-    # Possibly @slow_test or @nondeterministic_test
-    def test_function(self):
-        # Any actual test code here
-        assert True
+    #[test]
+    fn test_function() {
+        // Any actual test code here
+        assert!(true);
+    }
+}
 ```
 
+### Serial Tests
+If a test depends on shared state (like environment variables or configuration), use the `#[serial]` attribute from the `serial_test` crate to ensure they don't run in parallel.
 
+```rust
+#[test]
+#[serial]
+fn test_with_env() {
+    // ...
+}
+```
 
-Few things to note:
-- Inherit from `TestTemplate` (see `tests/test_template.py`) for proper test setup
-- Use `self.config` for test configuration (loaded from `tests/config.yaml`)
-- Prefix tests with `test_` and use `@slow_test` or `@nondeterministic_test` decorator for slow and/or nondeterministic tests
-- Never use `unittest`, always use pytest
+### Running Tests
+Use `make test` or `cd src-tauri && cargo test` to run tests.

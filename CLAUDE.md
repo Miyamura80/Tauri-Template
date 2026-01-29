@@ -27,7 +27,7 @@ cargo clippy            # Run Rust linter
 
 - **src/** - Tauri frontend (React + TypeScript + Vite)
 - **src-tauri/** - Tauri backend (Rust)
-  - **src/config.rs** - Application configuration (migrated from Python)
+  - **src/global_config.rs** - Application configuration (migrated from Python)
   - **src/logging.rs** - Tracing setup
   - **src/lib.rs** - Main library entry point
 - **docs/** - Documentation (Next.js app)
@@ -51,7 +51,7 @@ Source of truth: `src-tauri/global_config.yaml` (and `.env` overrides).
 
 ```rust
 // Accessing config in Rust
-let config = crate::config::get_config();
+let config = crate::global_config::get_config();
 println!("Model: {}", config.default_llm.default_model);
 ```
 
