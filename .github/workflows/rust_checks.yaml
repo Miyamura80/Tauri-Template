@@ -29,6 +29,8 @@ jobs:
         run: cd src-tauri && cargo clippy -- -D warnings
         env:
           TAURI_SKIP_CHECK_CARGO_DEV: 1
+      - name: Run Tests
+        run: cd src-tauri && cargo test
       - name: Run cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
