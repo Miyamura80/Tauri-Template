@@ -1,17 +1,42 @@
 use crate::config::get_config;
 use regex::Regex;
 use std::io;
+use std::sync::OnceLock;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Layer};
+
+static SESSION_ID: OnceLock<String> = OnceLock::new();
+
+fn get_session_id() -> &'static str {
+    SESSION_ID.get_or_init(|| {
+        use rand::distributions::Alphanumeric;
+        use rand::{thread_rng, Rng};
+        thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(8)
+            .map(char::from)
+            .collect()
+    })
+}
 
 struct RedactingWriter<W> {
     inner: W,
     patterns: Vec<(Regex, String)>,
+    session_id: Option<String>,
 }
 
 impl<W: io::Write> io::Write for RedactingWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let s = String::from_utf8_lossy(buf);
         let mut redacted = s.to_string();
+
+        // Prepend session ID if enabled
+        if let Some(ref id) = self.session_id {
+            // Only prepend to lines that aren't just whitespace/newlines
+            if !redacted.trim().is_empty() {
+                redacted = format!("[{}] {}", id, redacted);
+            }
+        }
+
         for (re, replacement) in &self.patterns {
             redacted = re.replace_all(&redacted, replacement).to_string();
         }
@@ -26,6 +51,7 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
 
 struct RedactingMakeWriter {
     patterns: Vec<(Regex, String)>,
+    session_id: Option<String>,
 }
 
 impl<'a> fmt::MakeWriter<'a> for RedactingMakeWriter {
@@ -35,6 +61,7 @@ impl<'a> fmt::MakeWriter<'a> for RedactingMakeWriter {
         RedactingWriter {
             inner: io::stdout(),
             patterns: self.patterns.clone(),
+            session_id: self.session_id.clone(),
         }
     }
 }
@@ -76,7 +103,16 @@ pub fn init_logging() {
         }
     }
 
-    let make_writer = RedactingMakeWriter { patterns };
+    let session_id = if config.logging.format.show_session_id {
+        Some(get_session_id().to_string())
+    } else {
+        None
+    };
+
+    let make_writer = RedactingMakeWriter {
+        patterns,
+        session_id,
+    };
 
     // Use Layer::boxed() to unify the types of the if/else branches
     let fmt_layer = if !config.logging.format.show_time {
@@ -102,4 +138,18 @@ pub fn init_logging() {
         .with(filter)
         .with(fmt_layer)
         .init();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_session_id_generation() {
+        let id1 = get_session_id();
+        let id2 = get_session_id();
+        assert_eq!(id1, id2);
+        assert_eq!(id1.len(), 8);
+        assert!(id1.chars().all(|c| c.is_alphanumeric()));
+    }
 }
