@@ -42,6 +42,7 @@ allow = [
     "Unicode-3.0",
     "0BSD",
     "Apache-2.0 WITH LLVM-exception",
+    "NCSA",
 ]
 
 [bans]
