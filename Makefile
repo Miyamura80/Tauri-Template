@@ -68,12 +68,13 @@ init: ## Initialize project (usage: make init name=my-project description="my de
 		exit 1; \
 	fi
 	@echo "$(YELLOW)🚀 Initializing project $(name)...$(RESET)"
-	@sed -i.bak "s/name = \"tauri-app\"/name = \"$(name)\"/" package.json && rm package.json.bak
+	@sed -i.bak "s/\"name\": \"tauri-app\"/\"name\": \"$(name)\"/" package.json && rm package.json.bak
 	@sed -i.bak "s/\"productName\": \"tauri-app\"/\"productName\": \"$(name)\"/" src-tauri/tauri.conf.json && rm src-tauri/tauri.conf.json.bak
+	@sed -i.bak "s/\"identifier\": \"com.eito.tauri-app\"/\"identifier\": \"com.$(USER).$(name)\"/" src-tauri/tauri.conf.json && rm src-tauri/tauri.conf.json.bak
 	@sed -i.bak "s/name = \"tauri-app\"/name = \"$(name)\"/" src-tauri/Cargo.toml && rm src-tauri/Cargo.toml.bak
-	@sed -i.bak "s/# Python-Template/# $(name)/" README.md && rm README.md.bak
-	@sed -i.bak "s/<b>Opinionated Python project stack. 🔋 Batteries included. <\/b>/<b>$(description)<\/b>/" README.md && rm README.md.bak
-	@echo "$(GREEN)✅ Updated project name and description.$(RESET)"
+	@sed -i.bak "s/# Tauri-Template/# $(name)/" README.md && rm README.md.bak
+	@sed -i.bak "s/<b>agent ready tauri template<\/b>/<b>$(description)<\/b>/" README.md && rm README.md.bak
+	@echo "$(GREEN)✅ Updated project name, identifier, and description.$(RESET)"
 
 check_uv:
 	@if ! command -v uv > /dev/null 2>&1; then \
