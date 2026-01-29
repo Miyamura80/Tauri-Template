@@ -70,7 +70,10 @@ pub fn init_logging() {
     let config = get_config();
 
     // Determine the log level from config - pick the most verbose one enabled.
-    // Priority: debug > info > warning > error > critical (error)
+    // In a hierarchical system like tracing, the most verbose level (e.g., debug)
+    // naturally includes all less verbose levels (e.g., info, warn, error).
+    // We select the "widest" enabled threshold to ensure the user's request for
+    // verbosity is honored even if multiple levels are checked.
     let level = if config.logging.levels.debug {
         "debug"
     } else if config.logging.levels.info {
