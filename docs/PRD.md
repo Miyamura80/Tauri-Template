@@ -1,97 +1,86 @@
 # Product Requirements Document: Python-to-Rust Tauri Migration
 
 ## 1. Overview
-Refactor the existing Python-based Tauri template into a native Rust/Tauri architecture. The goal is to remove the legacy Python scaffolding (Config, Logging, DSPy/Langfuse) and replace the core infrastructure with robust Rust equivalents. This includes migrating validation tests to Rust and strictly enforcing `bun` for frontend package management.
+This document tracks the transition from the legacy Python-based template to a native Rust + Tauri foundation. All Python scaffolding has been removed from the root workspace, and the remaining backend/asset tooling now lives in `src-tauri` with `bun` as the single frontend package manager and `cargo` for Rust tasks.
 
 ## 2. Core Constraints
-- **Runtime**: Remove all Python dependencies (`src_python`, `python_common`, `python_utils`).
-- **Package Manager**: Use `bun` exclusively. Documentation and scripts must reflect this.
-- **LLM Logic**: Deprecate and remove DSPy/Langfuse logic completely (no reimplementation required).
-- **Testing**: Port relevant existing Python logic/unit tests (Config validation, etc.) to Rust (`cargo test`).
+- **Runtime**: The backend is Rust-only (`src-tauri/`), and there are no Python dependencies tracked in the repo anymore.
+- **Package Management**: Run frontend scripts via `bun run …` (or `bunx` for globally unavailable tools) and backend helpers via `cargo`.
+- **Asset Generation**: `cargo run --bin asset-gen -- <banner|logo>` produces documentation banner/logo assets; it requires `APP__GEMINI_API_KEY` to call the Gemini image API.
+- **Testing**: All validation lives under `cargo test`; there are no more pytest targets or Python test suites.
 
 ## 3. Architecture & File Structure Changes
 
-### Before (Current)
+### Legacy Layout (before migration)
 ```text
 .
-├── CLAUDE.md / AGENTS.md   # Documentation
-├── Makefile                # Contains Python setup commands
-├── init/                   # Python asset generation scripts
-├── python_common/          # Shared Pydantic config models & YAMLs
-├── python_utils/           # LLM (DSPy) & Logging logic
-├── src_python/             # Legacy source
-├── src-tauri/
-│   ├── Cargo.toml
-│   └── src/
-│       └── lib.rs
-├── tests/                  # Pytest tests (Config, Env, Healthchecks)
+├── CLAUDE.md / AGENTS.md        # Documentation referencing Python
+├── Makefile                    # Python- and uv-based asset commands
+├── init/                       # Python asset generation scripts
+├── python_common/              # Pydantic config models & YAMLs
+├── python_utils/               # DSPy/Langfuse logic + logging
+├── src_python/                 # Python backend sources
+├── tests/                      # Pytest suites (Config, Env, Healthchecks)
+├── src-tauri/                  # Rust/Tauri project in early migration
 └── ...
 ```
 
-### After (Proposed)
+### Current Layout (after migration)
 ```text
 .
-├── CLAUDE.md / AGENTS.md   # Updated to specify BUN only
+├── CLAUDE.md / AGENTS.md       # Updated to describe the Rust stack & Bun tooling
+├── Makefile                    # Hooks into `bun`, `cargo`, and the Rust asset-gen binary
 ├── src-tauri/
-│   ├── Cargo.toml          # Added: config, tracing, serde_yaml
-│   ├── global_config.yaml  # Moved from python_common/
-│   └── src/
-│       ├── lib.rs
-│       ├── global_config.rs # New: Rust config structs (serde)
-│       └── logging.rs      # New: Tracing setup
-└── ...                     # Python directories removed
+│   ├── Cargo.toml              # Includes config, tracing, serde, and the asset-gen binary
+│   ├── global_config.yaml      # Still the YAML source of truth
+│   ├── src/
+│   │   ├── lib.rs              # Tauri command / binding layer
+│   │   ├── global_config.rs     # Serde structs & loader ported from Python
+│   │   ├── logging.rs           # Tracing subscriber replacing loguru
+│   │   └── bin/
+│   │       └── asset_gen.rs     # Banner/logo generation binary
+│   └── target/                 # Rust build output (ignored)
+└── docs/                       # Bun-based documentation site
 ```
 
 ## 4. Implementation Phases
 
 ### Phase 1: Documentation & Standards
-*Establish the "Bun only" rule first.*
-- [x] Update `CLAUDE.md` to specify `bun` commands and remove Python references.
-- [x] Verify `AGENTS.md` (symlink) updates automatically.
-- [x] Update `package.json` scripts to ensure they don't default to npm/node if specific runners are needed (though `bun run` usually handles this).
+*Establish the “Bun only” rule first.*
+- [x] Update `CLAUDE.md` and `AGENTS.md` to advertise `bun`/`cargo` tooling and drop Python references.
+- [x] Verify `package.json` scripts call `bun run` so npm/rnp/yarn are not needed.
 
 ### Phase 2: Rust Foundation (Config & Logging)
 *Establish Rust as the backend source of truth.*
-- [x] Add crates to `src-tauri/Cargo.toml`:
-    - `config`
-    - `tracing`, `tracing-subscriber`
-    - `serde`, `serde_json`, `serde_yaml`
-- [x] Create `src-tauri/src/global_config.rs`:
-    - Port `python_common/config_models.py` to Rust structs using `#[derive(Deserialize)]`.
-- [x] Implement Config Loader in Rust:
-    - Logic to read `global_config.yaml` and environment variables.
-- [x] Create `src-tauri/src/logging.rs`:
-    - Implement `tracing` subscriber to replace `loguru`.
+- [x] Add `config`, `tracing`, `tracing-subscriber`, `serde`, `serde_json`, `serde_yaml`, and friends to `src-tauri/Cargo.toml`.
+- [x] Port `python_common/config_models.py` to `src-tauri/src/global_config.rs` (`#[derive(Deserialize)]`).
+- [x] Implement the loader in Rust that reads `global_config.yaml` and respects `APP__…` overrides.
+- [x] Replace `loguru` with a `tracing` subscriber in `src-tauri/src/logging.rs`.
 
 ### Phase 3: Test Migration
 *Ensure reliability before deleting Python code.*
-- [x] Analyze `tests/` for critical logic (e.g., `test_env_var_loading.py`, `test_pydantic_type_coercion.py`).
-- [x] Create `src-tauri/tests/` or unit tests within `src-tauri/src/`.
-- [x] Write Rust tests (`#[test]`) that verify:
-    - Config loads correctly from YAML.
-    - Environment variables override config.
-    - Type coercion works as expected (Serde handling).
+- [x] Rebuild the critical test coverage (`config`, `env`, type coercion) as `cargo test` suites.
+- [x] Delete the legacy `tests/` folder and move assertions into `src-tauri/tests/` or `#[cfg(test)]` modules.
 
 ### Phase 4: Cleanup & Removal
-*Remove legacy Python code.*
-- [x] Move `python_common/global_config.yaml` to `src-tauri/`.
-- [x] Delete `src_python/`, `python_common/`, `python_utils/`.
-- [ ] Delete `init/` (Asset generation scripts) - **Temporarily restored as legacy placeholders until Phase 6.**
-- [x] Delete `tests/` (Python tests).
-- [x] Remove `pyproject.toml`, `uv.lock`, `pytest.ini`.
-- [x] Clean up `Makefile` (remove Python targets).
+*Eliminate leftover Python artifacts.*
+- [x] Move `python_common/global_config.yaml` into `src-tauri/`.
+- [x] Delete `src_python/`, `python_common/`, and `python_utils/` from the repository.
+- [x] Delete the `init/` directory and replace it with the Rust asset generator in `src-tauri/src/bin/asset_gen.rs`.
+- [x] Remove `pyproject.toml`, `uv.lock`, `pytest.ini`, and other Python lockfiles/configs.
+- [x] Keep the Makefile focused on `bun`, `cargo`, and `asset-gen` commands.
 
 ### Phase 5: Frontend Integration
 *Connect React to Rust.*
-- [x] Create a Tauri Command `get_config` in `src-tauri/src/lib.rs`.
-- [x] Create a React Hook `useConfig` in `src/hooks/` to invoke the command.
-- [x] Verify application runs with `bun run tauri dev`.
+- [x] Expose the `get_config` Tauri command in `src-tauri/src/lib.rs`.
+- [x] Add a React `useConfig` hook that invokes the Tauri command via `useInvoke()`.
+- [x] Verify `bun run tauri dev` starts the app with the new config pipeline.
 
-### Phase 6: Future Rust Enhancements
-- [ ] Rewrite `make banner` and `make logo` logic in Rust to eliminate the remaining `uv`/Python dependency for asset generation.
+### Phase 6: Asset Generation
+- [x] Rewrite `make banner` and `make logo` to call `cargo run --bin asset-gen -- <banner|logo>`, removing the `uv` dependency.
 
 ## 5. Success Criteria
-- [x] `bun run tauri dev` starts the application without errors.
-- [x] Rust tests (`cargo test`) pass and cover the logic previously held in `tests/`.
-- [x] No Python files (`.py`) remain in the repository (except maybe `scripts/` if strictly necessary, but ideally converted).
-- [x] `CLAUDE.md` accurately reflects the new architecture.
+- [x] `bun run tauri dev` launches, and the config hook surfaces the Rust-loaded YAML.
+- [x] `cargo test` covers the former Python config/validation logic.
+- [x] `cargo run --bin asset-gen -- banner|logo` generates MText assets without any Python dependency.
+- [x] No `.py` files or `uv` tooling are tracked outside of `node_modules`/`docs/node_modules`.
