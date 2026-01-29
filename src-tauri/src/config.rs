@@ -1,7 +1,7 @@
 use config::{Config, ConfigError, Environment, File};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppConfig {
@@ -163,12 +163,30 @@ pub struct RedactionPattern {
     pub placeholder: String,
 }
 
-static CONFIG: OnceLock<AppConfig> = OnceLock::new();
+static CONFIG: RwLock<Option<&'static AppConfig>> = RwLock::new(None);
 
 pub fn get_config() -> &'static AppConfig {
-    CONFIG.get_or_init(|| {
-        load_config().unwrap_or_else(|e| panic!("Failed to load configuration: {}", e))
-    })
+    if let Some(cfg) = *CONFIG.read().unwrap() {
+        return cfg;
+    }
+
+    let mut write = CONFIG.write().unwrap();
+    if let Some(cfg) = *write {
+        return cfg;
+    }
+
+    let cfg =
+        Box::leak(Box::new(load_config().unwrap_or_else(|e| {
+            panic!("Failed to load configuration: {}", e)
+        })));
+    *write = Some(cfg);
+    cfg
+}
+
+#[cfg(test)]
+pub fn reset_config() {
+    let mut write = CONFIG.write().unwrap();
+    *write = None;
 }
 
 fn load_config() -> Result<AppConfig, ConfigError> {
@@ -195,6 +213,7 @@ mod tests {
     struct EnvGuard(&'static str);
     impl EnvGuard {
         fn new(key: &'static str, val: &str) -> Self {
+            reset_config();
             env::set_var(key, val);
             Self(key)
         }
@@ -202,6 +221,7 @@ mod tests {
     impl Drop for EnvGuard {
         fn drop(&mut self) {
             env::remove_var(self.0);
+            reset_config();
         }
     }
 
