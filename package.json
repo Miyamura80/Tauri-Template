@@ -28,7 +28,7 @@
 		"@vitejs/plugin-react": "^4.6.0",
 		"dependency-cruiser": "^17.3.7",
 		"knip": "^5.82.1",
-		"typescript": "~5.8.3",
+		"typescript": "~5.9.3",
 		"vite": "^7.0.4"
 	}
 }
