@@ -97,8 +97,12 @@ pub fn init_logging() {
     let mut patterns = Vec::new();
     if config.logging.redaction.enabled {
         for p in &config.logging.redaction.patterns {
-            if let Ok(re) = Regex::new(&p.regex) {
-                patterns.push((re, p.placeholder.clone()));
+            match Regex::new(&p.regex) {
+                Ok(re) => patterns.push((re, p.placeholder.clone())),
+                Err(e) => eprintln!(
+                    "Warning: Failed to compile redaction regex '{}': {}",
+                    p.name, e
+                ),
             }
         }
     }
