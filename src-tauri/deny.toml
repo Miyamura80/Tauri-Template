@@ -29,7 +29,6 @@ ignore = [
 # Pulled in by kuchikiki -> selectors -> fxhash.
     "RUSTSEC-2025-0057", # fxhash is unmaintained
     "RUSTSEC-2024-0436", # paste is unmaintained and only used by rav1e -> ravif -> image
-    "RUSTSEC-2025-0134", # rustls-pemfile is archived; reqwest/tauri still depend on it
 ]
 
 [licenses]
@@ -79,7 +78,6 @@ skip = [
     "rand",
     "rand_chacha",
     "rand_core",
-    "reqwest",
     "serde_spanned",
     "siphasher",
     "socket2",
