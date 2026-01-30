@@ -190,13 +190,40 @@ pub fn reset_config() {
 }
 
 fn load_config() -> Result<AppConfig, ConfigError> {
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let base_path = std::path::Path::new(&manifest_dir);
+    // When running from repo root (e.g. via make), manifest_dir might point to src-tauri if running cargo test inside it,
+    // or we might need to adjust based on CWD.
+    // However, the issue is that "src-tauri/" prefix in File::with_name assumes CWD is repo root.
+    // If CARGO_MANIFEST_DIR is set, it points to the directory containing Cargo.toml (src-tauri).
+    // So if we are in src-tauri, we should NOT prepend src-tauri/.
+
+    let config_path = if base_path.join("global_config.yaml").exists() {
+        base_path.join("global_config.yaml")
+    } else {
+        // Fallback for repo-root execution where src-tauri/ exists
+        std::path::Path::new("src-tauri").join("global_config.yaml")
+    };
+
+    let prod_config_path = if base_path.join("production_config.yaml").exists() {
+        base_path.join("production_config.yaml")
+    } else {
+        std::path::Path::new("src-tauri").join("production_config.yaml")
+    };
+
+    let local_config_path = if base_path.join(".global_config.yaml").exists() {
+        base_path.join(".global_config.yaml")
+    } else {
+        std::path::Path::new("src-tauri").join(".global_config.yaml")
+    };
+
     let builder = Config::builder()
         // Load default config (mandatory)
-        .add_source(File::with_name("src-tauri/global_config.yaml").required(true))
+        .add_source(File::from(config_path).required(true))
         // Load production config if in prod
-        .add_source(File::with_name("src-tauri/production_config.yaml").required(false))
+        .add_source(File::from(prod_config_path).required(false))
         // Load local override
-        .add_source(File::with_name("src-tauri/.global_config.yaml").required(false))
+        .add_source(File::from(local_config_path).required(false))
         // Load environment variables
         // Map nested env vars like APP__LOGGING__VERBOSE=true
         .add_source(Environment::with_prefix("APP").separator("__"));
