@@ -38,7 +38,9 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
         }
 
         for (re, replacement) in &self.patterns {
-            redacted = re.replace_all(&redacted, replacement).to_string();
+            if let std::borrow::Cow::Owned(s) = re.replace_all(&redacted, replacement) {
+                redacted = s;
+            }
         }
         self.inner.write_all(redacted.as_bytes())?;
         Ok(buf.len())
