@@ -4,7 +4,7 @@ use std::io;
 use std::sync::OnceLock;
 use tracing::Level;
 use tracing_subscriber::filter::{filter_fn, LevelFilter};
-use tracing_subscriber::{fmt, prelude::*};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter, Layer};
 
 static SESSION_ID: OnceLock<String> = OnceLock::new();
 
@@ -79,7 +79,9 @@ pub fn init_logging() {
     // naturally includes all less verbose levels (e.g., info, warn, error).
     // We select the "widest" enabled threshold to ensure the user's request for
     // verbosity is honored even if multiple levels are checked.
-    let global_level = if config.logging.levels.debug {
+    let global_level = if config.logging.levels.trace {
+        LevelFilter::TRACE
+    } else if config.logging.levels.debug {
         LevelFilter::DEBUG
     } else if config.logging.levels.info {
         LevelFilter::INFO

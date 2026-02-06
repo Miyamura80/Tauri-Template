@@ -136,6 +136,7 @@ pub struct LoggingLocationConfig {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LoggingLevelsConfig {
+    pub trace: bool,
     pub debug: bool,
     pub info: bool,
     pub warning: bool,
@@ -388,6 +389,7 @@ mod tests {
                     },
                 },
                 levels: LoggingLevelsConfig {
+                    trace: true,
                     debug: true,
                     info: true,
                     warning: true,
