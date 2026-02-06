@@ -3,8 +3,7 @@ use regex::Regex;
 use std::io;
 use std::sync::OnceLock;
 use tracing::Level;
-use tracing_subscriber::filter::filter_fn;
-use std::sync::{Arc, OnceLock};
+use tracing_subscriber::filter::{filter_fn, LevelFilter};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Layer};
 
 static SESSION_ID: OnceLock<String> = OnceLock::new();
@@ -23,8 +22,8 @@ fn get_session_id() -> &'static str {
 
 struct RedactingWriter<W> {
     inner: W,
-    patterns: Arc<Vec<(Regex, String)>>,
-    session_id: Option<Arc<String>>,
+    patterns: Vec<(Regex, String)>,
+    session_id: Option<String>,
 }
 
 impl<W: io::Write> io::Write for RedactingWriter<W> {
@@ -40,7 +39,7 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
             }
         }
 
-        for (re, replacement) in self.patterns.iter() {
+        for (re, replacement) in &self.patterns {
             if let std::borrow::Cow::Owned(s) = re.replace_all(&redacted, replacement) {
                 redacted = s;
             }
@@ -56,8 +55,8 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
 
 #[derive(Clone)]
 struct RedactingMakeWriter {
-    patterns: Arc<Vec<(Regex, String)>>,
-    session_id: Option<Arc<String>>,
+    patterns: Vec<(Regex, String)>,
+    session_id: Option<String>,
 }
 
 impl<'a> fmt::MakeWriter<'a> for RedactingMakeWriter {
@@ -80,21 +79,21 @@ pub fn init_logging() {
     // naturally includes all less verbose levels (e.g., info, warn, error).
     // We select the "widest" enabled threshold to ensure the user's request for
     // verbosity is honored even if multiple levels are checked.
-    let level = if config.logging.levels.debug {
-        "debug"
+    let global_level = if config.logging.levels.debug {
+        LevelFilter::DEBUG
     } else if config.logging.levels.info {
-        "info"
+        LevelFilter::INFO
     } else if config.logging.levels.warning {
-        "warn"
+        LevelFilter::WARN
     } else if config.logging.levels.error || config.logging.levels.critical {
-        "error"
+        LevelFilter::ERROR
     } else {
-        "off"
+        LevelFilter::OFF
     };
 
-    // Use the level from config as the base filter.
-    // Note: try_from_default_env() is skipped to ensure config is the source of truth.
-    let env_filter = EnvFilter::new(level);
+    // Note: We use LevelFilter for the global threshold instead of EnvFilter
+    // to allow easy composition with per-layer level filters.
+    // This maintains the existing logic which prioritizes config over env vars.
 
     // Base formatter configuration
     let location = &config.logging.format.location;
@@ -117,10 +116,8 @@ pub fn init_logging() {
         }
     }
 
-    let patterns = Arc::new(patterns);
-
     let session_id = if config.logging.format.show_session_id {
-        Some(Arc::new(get_session_id().to_string()))
+        Some(get_session_id().to_string())
     } else {
         None
     };
@@ -147,10 +144,13 @@ pub fn init_logging() {
             layer.boxed()
         };
 
-        // Filter: Match strictly this level
+        // Filter: Match strictly this level AND satisfy the global level threshold.
+        // We cannot rely on EnvFilter in the registry to filter siblings when using filter_fn,
+        // so we compose the global LevelFilter here.
         let level_filter = filter_fn(move |metadata| *metadata.level() == level);
+        let combined_filter = level_filter.and(global_level);
 
-        layer.with_filter(level_filter)
+        layer.with_filter(combined_filter)
     };
 
     let trace_layer = make_layer(Level::TRACE, location.show_for_trace);
@@ -160,7 +160,6 @@ pub fn init_logging() {
     let error_layer = make_layer(Level::ERROR, location.show_for_error);
 
     tracing_subscriber::registry()
-        .with(env_filter)
         .with(trace_layer)
         .with(debug_layer)
         .with(info_layer)
@@ -173,7 +172,6 @@ pub fn init_logging() {
 mod tests {
     use super::*;
     use std::io::Write;
-    use std::sync::Arc;
 
     #[test]
     fn test_session_id_generation() {
@@ -190,12 +188,11 @@ mod tests {
         let patterns = vec![
             (Regex::new(r"password=\w+").unwrap(), "password=***".to_string())
         ];
-        let patterns = Arc::new(patterns);
 
         let mut writer = RedactingWriter {
             inner: &mut buffer,
             patterns,
-            session_id: Some(Arc::new("TESTID".to_string())),
+            session_id: Some("TESTID".to_string()),
         };
 
         let input = b"login password=secret";
