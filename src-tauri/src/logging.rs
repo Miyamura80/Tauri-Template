@@ -2,6 +2,8 @@ use crate::global_config::get_config;
 use regex::Regex;
 use std::io;
 use std::sync::OnceLock;
+use tracing::Level;
+use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Layer};
 
 static SESSION_ID: OnceLock<String> = OnceLock::new();
@@ -51,6 +53,7 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
     }
 }
 
+#[derive(Clone)]
 struct RedactingMakeWriter {
     patterns: Vec<(Regex, String)>,
     session_id: Option<String>,
@@ -90,17 +93,14 @@ pub fn init_logging() {
 
     // Use the level from config as the base filter.
     // Note: try_from_default_env() is skipped to ensure config is the source of truth.
-    let filter = EnvFilter::new(level);
+    let env_filter = EnvFilter::new(level);
 
     // Base formatter configuration
     let location = &config.logging.format.location;
+    let location_enabled = location.enabled;
     let show_file = location.show_file;
     let show_line = location.show_line;
     let show_target = location.show_function; // Map show_function to tracing's target display
-
-    // TODO: Implement per-level location display control (show_for_info, show_for_debug, etc.)
-    // in Phase 4. Currently, location settings are applied globally if enabled.
-    // This requires separate layers for each level using with_filter().
 
     // Setup redaction patterns
     let mut patterns = Vec::new();
@@ -127,29 +127,42 @@ pub fn init_logging() {
         session_id,
     };
 
-    // Use Layer::boxed() to unify the types of the if/else branches
-    let fmt_layer = if !config.logging.format.show_time {
-        fmt::layer()
-            .with_writer(make_writer)
-            .with_target(show_target)
-            .with_file(show_file)
-            .with_line_number(show_line)
-            .with_thread_ids(false)
-            .without_time()
-            .boxed()
-    } else {
-        fmt::layer()
-            .with_writer(make_writer)
-            .with_target(show_target)
-            .with_file(show_file)
-            .with_line_number(show_line)
-            .with_thread_ids(false)
-            .boxed()
+    // Helper to create a layer for a specific level with its own location settings
+    let make_layer = |level: Level, show_location_for_level: bool| {
+        let show_loc = location_enabled && show_location_for_level;
+
+        let layer = fmt::layer()
+            .with_writer(make_writer.clone())
+            .with_target(show_loc && show_target)
+            .with_file(show_loc && show_file)
+            .with_line_number(show_loc && show_line)
+            .with_thread_ids(false);
+
+        let layer = if !config.logging.format.show_time {
+            layer.without_time().boxed()
+        } else {
+            layer.boxed()
+        };
+
+        // Filter: Match strictly this level
+        let level_filter = filter_fn(move |metadata| *metadata.level() == level);
+
+        layer.with_filter(level_filter)
     };
 
+    let trace_layer = make_layer(Level::TRACE, location.show_for_debug);
+    let debug_layer = make_layer(Level::DEBUG, location.show_for_debug);
+    let info_layer = make_layer(Level::INFO, location.show_for_info);
+    let warn_layer = make_layer(Level::WARN, location.show_for_warning);
+    let error_layer = make_layer(Level::ERROR, location.show_for_error);
+
     tracing_subscriber::registry()
-        .with(filter)
-        .with(fmt_layer)
+        .with(env_filter)
+        .with(trace_layer)
+        .with(debug_layer)
+        .with(info_layer)
+        .with(warn_layer)
+        .with(error_layer)
         .init();
 }
 
