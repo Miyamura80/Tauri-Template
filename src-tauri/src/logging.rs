@@ -150,7 +150,7 @@ pub fn init_logging() {
         layer.with_filter(level_filter)
     };
 
-    let trace_layer = make_layer(Level::TRACE, location.show_for_debug);
+    let trace_layer = make_layer(Level::TRACE, location.show_for_trace);
     let debug_layer = make_layer(Level::DEBUG, location.show_for_debug);
     let info_layer = make_layer(Level::INFO, location.show_for_info);
     let warn_layer = make_layer(Level::WARN, location.show_for_warning);
