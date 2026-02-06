@@ -4,6 +4,7 @@ use std::io;
 use std::sync::OnceLock;
 use tracing::Level;
 use tracing_subscriber::filter::filter_fn;
+use std::sync::{Arc, OnceLock};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Layer};
 
 static SESSION_ID: OnceLock<String> = OnceLock::new();
@@ -22,8 +23,8 @@ fn get_session_id() -> &'static str {
 
 struct RedactingWriter<W> {
     inner: W,
-    patterns: Vec<(Regex, String)>,
-    session_id: Option<String>,
+    patterns: Arc<Vec<(Regex, String)>>,
+    session_id: Option<Arc<String>>,
 }
 
 impl<W: io::Write> io::Write for RedactingWriter<W> {
@@ -39,7 +40,7 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
             }
         }
 
-        for (re, replacement) in &self.patterns {
+        for (re, replacement) in self.patterns.iter() {
             if let std::borrow::Cow::Owned(s) = re.replace_all(&redacted, replacement) {
                 redacted = s;
             }
@@ -55,8 +56,8 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
 
 #[derive(Clone)]
 struct RedactingMakeWriter {
-    patterns: Vec<(Regex, String)>,
-    session_id: Option<String>,
+    patterns: Arc<Vec<(Regex, String)>>,
+    session_id: Option<Arc<String>>,
 }
 
 impl<'a> fmt::MakeWriter<'a> for RedactingMakeWriter {
@@ -116,8 +117,10 @@ pub fn init_logging() {
         }
     }
 
+    let patterns = Arc::new(patterns);
+
     let session_id = if config.logging.format.show_session_id {
-        Some(get_session_id().to_string())
+        Some(Arc::new(get_session_id().to_string()))
     } else {
         None
     };
@@ -170,6 +173,7 @@ pub fn init_logging() {
 mod tests {
     use super::*;
     use std::io::Write;
+    use std::sync::Arc;
 
     #[test]
     fn test_session_id_generation() {
@@ -186,11 +190,12 @@ mod tests {
         let patterns = vec![
             (Regex::new(r"password=\w+").unwrap(), "password=***".to_string())
         ];
+        let patterns = Arc::new(patterns);
 
         let mut writer = RedactingWriter {
             inner: &mut buffer,
             patterns,
-            session_id: Some("TESTID".to_string()),
+            session_id: Some(Arc::new("TESTID".to_string())),
         };
 
         let input = b"login password=secret";
