@@ -1,4 +1,4 @@
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
@@ -83,11 +83,16 @@ async fn run_logo(
     client: GeminiClient,
 ) -> Result<()> {
     let workspace = workspace_root()?;
-    let project_name = project_name.unwrap_or_else(|| {
-        read_project_name(&workspace).unwrap_or_else(|_| "Tauri-Template".into())
-    });
+    let project_name = match project_name {
+        Some(name) => name,
+        None => read_project_name(&workspace)
+            .await
+            .unwrap_or_else(|_| "Tauri-Template".into()),
+    };
     let target = output_dir.unwrap_or_else(|| workspace.join("docs").join("public"));
-    fs::create_dir_all(&target).context("Failed to create output directory")?;
+    tokio::fs::create_dir_all(&target)
+        .await
+        .context("Failed to create output directory")?;
 
     info!("Generating wordmark for {}...", project_name);
     let description = client
@@ -156,11 +161,16 @@ async fn run_banner(
     client: GeminiClient,
 ) -> Result<()> {
     let workspace = workspace_root()?;
-    let title = title.unwrap_or_else(|| {
-        read_project_name(&workspace).unwrap_or_else(|_| "Tauri-Template".into())
-    });
+    let title = match title {
+        Some(t) => t,
+        None => read_project_name(&workspace)
+            .await
+            .unwrap_or_else(|_| "Tauri-Template".into()),
+    };
     let target = output_dir.unwrap_or_else(|| workspace.join("media"));
-    fs::create_dir_all(&target).context("Failed to create banner output directory")?;
+    tokio::fs::create_dir_all(&target)
+        .await
+        .context("Failed to create banner output directory")?;
 
     let banner_description = client
         .generate_banner_description(&title, suggestion.as_deref())
@@ -256,9 +266,10 @@ fn workspace_root() -> Result<PathBuf> {
         .ok_or_else(|| anyhow!("Unable to determine workspace root"))
 }
 
-fn read_project_name(workspace: &Path) -> Result<String> {
+async fn read_project_name(workspace: &Path) -> Result<String> {
     let package_json = workspace.join("package.json");
-    let data = fs::read_to_string(&package_json)
+    let data = tokio::fs::read_to_string(&package_json)
+        .await
         .with_context(|| format!("Failed to read {}", package_json.display()))?;
     let json: Value = serde_json::from_str(&data).context("Invalid package.json")?;
     json.get("name")
