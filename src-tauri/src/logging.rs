@@ -27,7 +27,7 @@ struct RedactingWriter<W> {
 impl<W: io::Write> io::Write for RedactingWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let s = String::from_utf8_lossy(buf);
-        let mut redacted = s.to_string();
+        let mut redacted = s.into_owned();
 
         // Prepend session ID if enabled
         if let Some(ref id) = self.session_id {
@@ -154,6 +154,7 @@ pub fn init_logging() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
 
     #[test]
     fn test_session_id_generation() {
@@ -162,5 +163,28 @@ mod tests {
         assert_eq!(id1, id2);
         assert_eq!(id1.len(), 8);
         assert!(id1.chars().all(|c| c.is_alphanumeric()));
+    }
+
+    #[test]
+    fn test_redacting_writer_functionality() {
+        let mut buffer = Vec::new();
+        let patterns = vec![
+            (Regex::new(r"password=\w+").unwrap(), "password=***".to_string())
+        ];
+
+        let mut writer = RedactingWriter {
+            inner: &mut buffer,
+            patterns,
+            session_id: Some("TESTID".to_string()),
+        };
+
+        let input = b"login password=secret";
+        writer.write_all(input).unwrap();
+        writer.flush().unwrap();
+
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(output.contains("[TESTID]"));
+        assert!(output.contains("password=***"));
+        assert!(!output.contains("secret"));
     }
 }
