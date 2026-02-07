@@ -2,6 +2,8 @@ use crate::global_config::get_config;
 use regex::Regex;
 use std::io;
 use std::sync::{Arc, OnceLock};
+use tracing::Level;
+use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Layer};
 
 static SESSION_ID: OnceLock<String> = OnceLock::new();
@@ -51,6 +53,7 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
     }
 }
 
+#[derive(Clone)]
 struct RedactingMakeWriter {
     patterns: Arc<Vec<(Regex, String)>>,
     session_id: Option<Arc<String>>,
@@ -92,16 +95,6 @@ pub fn init_logging() {
     // Note: try_from_default_env() is skipped to ensure config is the source of truth.
     let filter = EnvFilter::new(level);
 
-    // Base formatter configuration
-    let location = &config.logging.format.location;
-    let show_file = location.show_file;
-    let show_line = location.show_line;
-    let show_target = location.show_function; // Map show_function to tracing's target display
-
-    // TODO: Implement per-level location display control (show_for_info, show_for_debug, etc.)
-    // in Phase 4. Currently, location settings are applied globally if enabled.
-    // This requires separate layers for each level using with_filter().
-
     // Setup redaction patterns
     let mut patterns = Vec::new();
     if config.logging.redaction.enabled {
@@ -129,29 +122,55 @@ pub fn init_logging() {
         session_id,
     };
 
-    // Use Layer::boxed() to unify the types of the if/else branches
-    let fmt_layer = if !config.logging.format.show_time {
-        fmt::layer()
-            .with_writer(make_writer)
-            .with_target(show_target)
-            .with_file(show_file)
-            .with_line_number(show_line)
-            .with_thread_ids(false)
-            .without_time()
-            .boxed()
-    } else {
-        fmt::layer()
-            .with_writer(make_writer)
-            .with_target(show_target)
-            .with_file(show_file)
-            .with_line_number(show_line)
-            .with_thread_ids(false)
-            .boxed()
+    // Base formatter configuration
+    let location = &config.logging.format.location;
+    let show_time = config.logging.format.show_time;
+
+    // Helper to create a layer for a specific level with its location settings
+    let make_layer = |level_filter: Level, show_location_for_level: bool| {
+        // Location info is shown only if globally enabled AND enabled for this specific level
+        let show = location.enabled && show_location_for_level;
+
+        let layer = fmt::layer()
+            .with_writer(make_writer.clone())
+            .with_target(show && location.show_function)
+            .with_file(show && location.show_file)
+            .with_line_number(show && location.show_line)
+            .with_thread_ids(false);
+
+        // Apply time settings. We must box to unify types because without_time() changes the type.
+        let layer = if !show_time {
+            layer.without_time().boxed()
+        } else {
+            layer.boxed()
+        };
+
+        // Apply filter to restrict this layer to ONLY this level
+        layer.with_filter(filter_fn(move |metadata| *metadata.level() == level_filter))
     };
+
+    // Create separate layers for each level
+    // Note: Trace level is not explicitly configured in LoggingLocationConfig, so we use Debug settings as fallback.
+    let trace_layer = make_layer(Level::TRACE, location.show_for_debug);
+    let debug_layer = make_layer(Level::DEBUG, location.show_for_debug);
+    let info_layer = make_layer(Level::INFO, location.show_for_info);
+    let warn_layer = make_layer(Level::WARN, location.show_for_warning);
+    let error_layer = make_layer(Level::ERROR, location.show_for_error);
+
+    // We collect layers into a Vec to ensure they all share the same Subscriber type <S>.
+    // Chaining .with() causes S to change for each layer, which causes type mismatch
+    // because make_layer closure infers a single concrete S.
+    let layers = vec![
+        trace_layer,
+        debug_layer,
+        info_layer,
+        warn_layer,
+        error_layer,
+    ];
 
     tracing_subscriber::registry()
         .with(filter)
-        .with(fmt_layer)
+        .with(layers)
         .init();
 }
 
@@ -173,9 +192,10 @@ mod tests {
     #[test]
     fn test_redacting_writer_functionality() {
         let mut buffer = Vec::new();
-        let patterns = vec![
-            (Regex::new(r"password=\w+").unwrap(), "password=***".to_string())
-        ];
+        let patterns = vec![(
+            Regex::new(r"password=\w+").unwrap(),
+            "password=***".to_string(),
+        )];
         let patterns = Arc::new(patterns);
 
         let mut writer = RedactingWriter {
