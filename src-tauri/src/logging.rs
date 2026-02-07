@@ -176,9 +176,10 @@ mod tests {
     #[test]
     fn test_redacting_writer_functionality() {
         let mut buffer = Vec::new();
-        let patterns = vec![
-            (Regex::new(r"password=\w+").unwrap(), "password=***".to_string())
-        ];
+        let patterns = vec![(
+            Regex::new(r"password=\w+").unwrap(),
+            "password=***".to_string(),
+        )];
         let patterns = Arc::new(patterns);
 
         let mut writer = RedactingWriter {
@@ -208,7 +209,9 @@ mod tests {
                 model_name: "test".into(),
                 dot_global_config_health_check: true,
                 dev_env: "test".into(),
-                example_parent: ExampleParent { example_child: "val".into() },
+                example_parent: ExampleParent {
+                    example_child: "val".into(),
+                },
                 default_llm: DefaultLlm {
                     default_model: "test".into(),
                     fallback_model: None,
@@ -217,7 +220,11 @@ mod tests {
                 },
                 llm_config: LlmConfig {
                     cache_enabled: false,
-                    retry: RetryConfig { max_attempts: 1, min_wait_seconds: 1, max_wait_seconds: 1 },
+                    retry: RetryConfig {
+                        max_attempts: 1,
+                        min_wait_seconds: 1,
+                        max_wait_seconds: 1,
+                    },
                 },
                 logging: LoggingConfig {
                     verbose: false,
