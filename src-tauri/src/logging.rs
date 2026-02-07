@@ -26,20 +26,25 @@ struct RedactingWriter<W> {
 
 impl<W: io::Write> io::Write for RedactingWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let s = String::from_utf8_lossy(buf);
-        let mut redacted = s.into_owned();
+        let mut redacted = String::from_utf8_lossy(buf);
 
         // Prepend session ID if enabled
         if let Some(ref id) = self.session_id {
             // Only prepend to lines that aren't just whitespace/newlines
             if !redacted.trim().is_empty() {
-                redacted = format!("[{}] {}", id, redacted);
+                let mut new_s = String::with_capacity(id.len() + 3 + redacted.len());
+                new_s.push('[');
+                new_s.push_str(id);
+                new_s.push_str("] ");
+                new_s.push_str(&redacted);
+                redacted = std::borrow::Cow::Owned(new_s);
             }
         }
 
         for (re, replacement) in self.patterns.iter() {
-            if let std::borrow::Cow::Owned(s) = re.replace_all(&redacted, replacement) {
-                redacted = s;
+            match re.replace_all(&redacted, replacement) {
+                std::borrow::Cow::Owned(s) => redacted = std::borrow::Cow::Owned(s),
+                std::borrow::Cow::Borrowed(_) => {}
             }
         }
         self.inner.write_all(redacted.as_bytes())?;
