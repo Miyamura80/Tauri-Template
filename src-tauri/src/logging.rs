@@ -1,7 +1,7 @@
 use crate::global_config::get_config;
 use regex::Regex;
 use std::io;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 use tracing::Level;
 use tracing_subscriber::filter::{filter_fn, LevelFilter};
 use tracing_subscriber::{fmt, prelude::*};
@@ -22,8 +22,8 @@ fn get_session_id() -> &'static str {
 
 struct RedactingWriter<W> {
     inner: W,
-    patterns: Vec<(Regex, String)>,
-    session_id: Option<String>,
+    patterns: Arc<Vec<(Regex, String)>>,
+    session_id: Option<Arc<String>>,
 }
 
 impl<W: io::Write> io::Write for RedactingWriter<W> {
@@ -39,7 +39,7 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
             }
         }
 
-        for (re, replacement) in &self.patterns {
+        for (re, replacement) in &*self.patterns {
             if let std::borrow::Cow::Owned(s) = re.replace_all(&redacted, replacement) {
                 redacted = s;
             }
@@ -55,8 +55,8 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
 
 #[derive(Clone)]
 struct RedactingMakeWriter {
-    patterns: Vec<(Regex, String)>,
-    session_id: Option<String>,
+    patterns: Arc<Vec<(Regex, String)>>,
+    session_id: Option<Arc<String>>,
 }
 
 impl<'a> fmt::MakeWriter<'a> for RedactingMakeWriter {
@@ -119,13 +119,13 @@ pub fn init_logging() {
     }
 
     let session_id = if config.logging.format.show_session_id {
-        Some(get_session_id().to_string())
+        Some(Arc::new(get_session_id().to_string()))
     } else {
         None
     };
 
     let make_writer = RedactingMakeWriter {
-        patterns,
+        patterns: Arc::new(patterns),
         session_id,
     };
 
@@ -193,8 +193,8 @@ mod tests {
 
         let mut writer = RedactingWriter {
             inner: &mut buffer,
-            patterns,
-            session_id: Some("TESTID".to_string()),
+            patterns: Arc::new(patterns),
+            session_id: Some(Arc::new("TESTID".to_string())),
         };
 
         let input = b"login password=secret";
