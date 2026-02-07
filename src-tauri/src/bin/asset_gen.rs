@@ -7,7 +7,7 @@ use base64::{engine::general_purpose, Engine as _};
 use clap::{Parser, Subcommand};
 use image::codecs::ico::IcoEncoder;
 use image::codecs::png::PngEncoder;
-use image::imageops::{resize, FilterType};
+use image::imageops::{invert, resize, FilterType};
 use image::ImageEncoder;
 use image::{ColorType, DynamicImage, GenericImage, ImageBuffer, Rgba, RgbaImage};
 use reqwest::Client;
@@ -129,7 +129,7 @@ async fn run_logo(
     remove_greenscreen(&mut icon_light, 60);
 
     let mut dark_wordmark = light_image.clone();
-    invert_colors(&mut dark_wordmark);
+    invert(&mut dark_wordmark);
     save_png(&dark_wordmark, &target.join("logo-dark.png"))?;
     info!(
         "Saved dark wordmark at {}",
@@ -137,7 +137,7 @@ async fn run_logo(
     );
 
     let mut icon_dark = icon_light.clone();
-    invert_colors(&mut icon_dark);
+    invert(&mut icon_dark);
 
     let icon_light_square = ensure_square(&icon_light)?;
     let icon_dark_square = ensure_square(&icon_dark)?;
@@ -237,13 +237,6 @@ fn remove_greenscreen(image: &mut RgbaImage, tolerance: i32) {
         }
 
         pixel.0 = [r, g, b, a];
-    }
-}
-
-fn invert_colors(image: &mut RgbaImage) {
-    for pixel in image.pixels_mut() {
-        let [r, g, b, a] = pixel.0;
-        pixel.0 = [255 - r, 255 - g, 255 - b, a];
     }
 }
 
@@ -534,13 +527,6 @@ mod tests {
         let mut image = ImageBuffer::from_pixel(1, 1, Rgba([0, 255, 0, 255]));
         remove_greenscreen(&mut image, 60);
         assert_eq!(image.get_pixel(0, 0)[3], 0);
-    }
-
-    #[test]
-    fn invert_colors_flips_rgb_only() {
-        let mut image = ImageBuffer::from_pixel(1, 1, Rgba([10, 20, 30, 200]));
-        invert_colors(&mut image);
-        assert_eq!(image.get_pixel(0, 0), &Rgba([245, 235, 225, 200]));
     }
 
     #[test]
