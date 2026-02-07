@@ -408,4 +408,11 @@ mod tests {
         assert!(!json.contains("secret-key"));
         assert!(!json.contains("openai_api_key"));
     }
+
+    #[test]
+    #[serial]
+    fn test_logging_verbose_default_is_false() {
+        let config = load_config().expect("Should load config");
+        assert!(!config.logging.verbose, "Logging verbose should be false by default");
+    }
 }

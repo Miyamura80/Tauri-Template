@@ -31,7 +31,7 @@ features:
   enable_llm_fallback: true
 
 logging:
-  verbose: true
+  verbose: false
   format:
     show_time: false
     show_session_id: true
