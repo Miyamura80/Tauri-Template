@@ -129,12 +129,14 @@ pub struct LoggingLocationConfig {
     pub show_line: bool,
     pub show_for_info: bool,
     pub show_for_debug: bool,
+    pub show_for_trace: bool,
     pub show_for_warning: bool,
     pub show_for_error: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LoggingLevelsConfig {
+    pub trace: bool,
     pub debug: bool,
     pub info: bool,
     pub warning: bool,
@@ -381,11 +383,13 @@ mod tests {
                         show_line: true,
                         show_for_info: true,
                         show_for_debug: true,
+                        show_for_trace: true,
                         show_for_warning: true,
                         show_for_error: true,
                     },
                 },
                 levels: LoggingLevelsConfig {
+                    trace: true,
                     debug: true,
                     info: true,
                     warning: true,

@@ -2,7 +2,9 @@ use crate::global_config::get_config;
 use regex::Regex;
 use std::io;
 use std::sync::{Arc, OnceLock};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter, Layer};
+use tracing::Level;
+use tracing_subscriber::filter::{filter_fn, LevelFilter};
+use tracing_subscriber::{fmt, prelude::*};
 
 static SESSION_ID: OnceLock<String> = OnceLock::new();
 
@@ -37,7 +39,7 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
             }
         }
 
-        for (re, replacement) in self.patterns.iter() {
+        for (re, replacement) in &*self.patterns {
             if let std::borrow::Cow::Owned(s) = re.replace_all(&redacted, replacement) {
                 redacted = std::borrow::Cow::Owned(s);
             }
@@ -51,6 +53,7 @@ impl<W: io::Write> io::Write for RedactingWriter<W> {
     }
 }
 
+#[derive(Clone)]
 struct RedactingMakeWriter {
     patterns: Arc<Vec<(Regex, String)>>,
     session_id: Option<Arc<String>>,
@@ -76,31 +79,30 @@ pub fn init_logging() {
     // naturally includes all less verbose levels (e.g., info, warn, error).
     // We select the "widest" enabled threshold to ensure the user's request for
     // verbosity is honored even if multiple levels are checked.
-    let level = if config.logging.levels.debug {
-        "debug"
+    let global_level = if config.logging.levels.trace {
+        LevelFilter::TRACE
+    } else if config.logging.levels.debug {
+        LevelFilter::DEBUG
     } else if config.logging.levels.info {
-        "info"
+        LevelFilter::INFO
     } else if config.logging.levels.warning {
-        "warn"
+        LevelFilter::WARN
     } else if config.logging.levels.error || config.logging.levels.critical {
-        "error"
+        LevelFilter::ERROR
     } else {
-        "off"
+        LevelFilter::OFF
     };
 
-    // Use the level from config as the base filter.
-    // Note: try_from_default_env() is skipped to ensure config is the source of truth.
-    let filter = EnvFilter::new(level);
+    // Note: We use LevelFilter for the global threshold instead of EnvFilter
+    // to allow easy composition with per-layer level filters.
+    // This maintains the existing logic which prioritizes config over env vars.
 
     // Base formatter configuration
     let location = &config.logging.format.location;
+    let location_enabled = location.enabled;
     let show_file = location.show_file;
     let show_line = location.show_line;
     let show_target = location.show_function; // Map show_function to tracing's target display
-
-    // TODO: Implement per-level location display control (show_for_info, show_for_debug, etc.)
-    // in Phase 4. Currently, location settings are applied globally if enabled.
-    // This requires separate layers for each level using with_filter().
 
     // Setup redaction patterns
     let mut patterns = Vec::new();
@@ -116,8 +118,6 @@ pub fn init_logging() {
         }
     }
 
-    let patterns = Arc::new(patterns);
-
     let session_id = if config.logging.format.show_session_id {
         Some(Arc::new(get_session_id().to_string()))
     } else {
@@ -125,33 +125,48 @@ pub fn init_logging() {
     };
 
     let make_writer = RedactingMakeWriter {
-        patterns,
+        patterns: Arc::new(patterns),
         session_id,
     };
 
-    // Use Layer::boxed() to unify the types of the if/else branches
-    let fmt_layer = if !config.logging.format.show_time {
-        fmt::layer()
-            .with_writer(make_writer)
-            .with_target(show_target)
-            .with_file(show_file)
-            .with_line_number(show_line)
-            .with_thread_ids(false)
-            .without_time()
-            .boxed()
-    } else {
-        fmt::layer()
-            .with_writer(make_writer)
-            .with_target(show_target)
-            .with_file(show_file)
-            .with_line_number(show_line)
-            .with_thread_ids(false)
-            .boxed()
+    // Helper to create a layer for a specific level with its own location settings
+    let make_layer = |level: Level, show_location_for_level: bool| {
+        let show_loc = location_enabled && show_location_for_level;
+
+        let layer = fmt::layer()
+            .with_writer(make_writer.clone())
+            .with_target(show_loc && show_target)
+            .with_file(show_loc && show_file)
+            .with_line_number(show_loc && show_line)
+            .with_thread_ids(false);
+
+        let layer = if !config.logging.format.show_time {
+            layer.without_time().boxed()
+        } else {
+            layer.boxed()
+        };
+
+        // Filter: Match strictly this level AND satisfy the global level threshold.
+        // We cannot rely on EnvFilter in the registry to filter siblings when using filter_fn,
+        // so we compose the global LevelFilter here.
+        let level_filter = filter_fn(move |metadata| *metadata.level() == level);
+        let combined_filter = level_filter.and(global_level);
+
+        layer.with_filter(combined_filter)
     };
 
+    let trace_layer = make_layer(Level::TRACE, location.show_for_trace);
+    let debug_layer = make_layer(Level::DEBUG, location.show_for_debug);
+    let info_layer = make_layer(Level::INFO, location.show_for_info);
+    let warn_layer = make_layer(Level::WARN, location.show_for_warning);
+    let error_layer = make_layer(Level::ERROR, location.show_for_error);
+
     tracing_subscriber::registry()
-        .with(filter)
-        .with(fmt_layer)
+        .with(trace_layer)
+        .with(debug_layer)
+        .with(info_layer)
+        .with(warn_layer)
+        .with(error_layer)
         .init();
 }
 
@@ -159,7 +174,6 @@ pub fn init_logging() {
 mod tests {
     use super::*;
     use std::io::Write;
-    use std::sync::Arc;
 
     #[test]
     fn test_session_id_generation() {
@@ -176,11 +190,10 @@ mod tests {
         let patterns = vec![
             (Regex::new(r"password=\w+").unwrap(), "password=***".to_string())
         ];
-        let patterns = Arc::new(patterns);
 
         let mut writer = RedactingWriter {
             inner: &mut buffer,
-            patterns,
+            patterns: Arc::new(patterns),
             session_id: Some(Arc::new("TESTID".to_string())),
         };
 
