@@ -19,15 +19,15 @@ pub struct AppConfig {
 
     // Environment variables (optional in config file, usually injected)
     #[serde(skip_serializing)]
-    openai_api_key: Option<String>,
+    pub(crate) openai_api_key: Option<String>,
     #[serde(skip_serializing)]
-    anthropic_api_key: Option<String>,
+    pub(crate) anthropic_api_key: Option<String>,
     #[serde(skip_serializing)]
-    groq_api_key: Option<String>,
+    pub(crate) groq_api_key: Option<String>,
     #[serde(skip_serializing)]
-    perplexity_api_key: Option<String>,
+    pub(crate) perplexity_api_key: Option<String>,
     #[serde(skip_serializing)]
-    gemini_api_key: Option<String>,
+    pub(crate) gemini_api_key: Option<String>,
 }
 
 impl AppConfig {
@@ -413,6 +413,9 @@ mod tests {
     #[serial]
     fn test_logging_verbose_default_is_false() {
         let config = load_config().expect("Should load config");
-        assert!(!config.logging.verbose, "Logging verbose should be false by default");
+        assert!(
+            !config.logging.verbose,
+            "Logging verbose should be false by default"
+        );
     }
 }
