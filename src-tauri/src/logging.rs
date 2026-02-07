@@ -4,7 +4,7 @@ use std::io;
 use std::sync::OnceLock;
 use tracing::Level;
 use tracing_subscriber::filter::{filter_fn, LevelFilter};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter, Layer};
+use tracing_subscriber::{fmt, prelude::*};
 
 static SESSION_ID: OnceLock<String> = OnceLock::new();
 
