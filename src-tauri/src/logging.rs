@@ -27,19 +27,19 @@ struct RedactingWriter<W> {
 impl<W: io::Write> io::Write for RedactingWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let s = String::from_utf8_lossy(buf);
-        let mut redacted = s.into_owned();
+        let mut redacted = s;
 
         // Prepend session ID if enabled
         if let Some(ref id) = self.session_id {
             // Only prepend to lines that aren't just whitespace/newlines
             if !redacted.trim().is_empty() {
-                redacted = format!("[{}] {}", id, redacted);
+                redacted = std::borrow::Cow::Owned(format!("[{}] {}", id, redacted));
             }
         }
 
         for (re, replacement) in self.patterns.iter() {
             if let std::borrow::Cow::Owned(s) = re.replace_all(&redacted, replacement) {
-                redacted = s;
+                redacted = std::borrow::Cow::Owned(s);
             }
         }
         self.inner.write_all(redacted.as_bytes())?;
@@ -193,4 +193,5 @@ mod tests {
         assert!(output.contains("password=***"));
         assert!(!output.contains("secret"));
     }
+
 }
