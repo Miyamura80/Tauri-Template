@@ -1,4 +1,4 @@
-use crate::global_config::get_config;
+use crate::global_config::{get_config, AppConfig};
 use regex::Regex;
 use std::io;
 use std::sync::{Arc, OnceLock};
@@ -68,15 +68,13 @@ impl<'a> fmt::MakeWriter<'a> for RedactingMakeWriter {
     }
 }
 
-pub fn init_logging() {
-    let config = get_config();
-
+fn determine_log_level(config: &AppConfig) -> &'static str {
     // Determine the log level from config - pick the most verbose one enabled.
     // In a hierarchical system like tracing, the most verbose level (e.g., debug)
     // naturally includes all less verbose levels (e.g., info, warn, error).
     // We select the "widest" enabled threshold to ensure the user's request for
     // verbosity is honored even if multiple levels are checked.
-    let level = if config.logging.levels.debug {
+    if config.logging.verbose || config.logging.levels.debug {
         "debug"
     } else if config.logging.levels.info {
         "info"
@@ -86,7 +84,12 @@ pub fn init_logging() {
         "error"
     } else {
         "off"
-    };
+    }
+}
+
+pub fn init_logging() {
+    let config = get_config();
+    let level = determine_log_level(config);
 
     // Use the level from config as the base filter.
     // Note: try_from_default_env() is skipped to ensure config is the source of truth.
@@ -192,5 +195,99 @@ mod tests {
         assert!(output.contains("[TESTID]"));
         assert!(output.contains("password=***"));
         assert!(!output.contains("secret"));
+    }
+
+    #[test]
+    fn test_determine_log_level() {
+        use crate::global_config::*;
+        use std::collections::HashMap;
+
+        // Helper to create a default config for testing
+        fn create_test_config() -> AppConfig {
+            AppConfig {
+                model_name: "test".into(),
+                dot_global_config_health_check: true,
+                dev_env: "test".into(),
+                example_parent: ExampleParent { example_child: "val".into() },
+                default_llm: DefaultLlm {
+                    default_model: "test".into(),
+                    fallback_model: None,
+                    default_temperature: 0.5,
+                    default_max_tokens: 100,
+                },
+                llm_config: LlmConfig {
+                    cache_enabled: false,
+                    retry: RetryConfig { max_attempts: 1, min_wait_seconds: 1, max_wait_seconds: 1 },
+                },
+                logging: LoggingConfig {
+                    verbose: false,
+                    format: LoggingFormatConfig {
+                        show_time: false,
+                        show_session_id: false,
+                        location: LoggingLocationConfig {
+                            enabled: false,
+                            show_file: false,
+                            show_function: false,
+                            show_line: false,
+                            show_for_info: false,
+                            show_for_debug: false,
+                            show_for_warning: false,
+                            show_for_error: false,
+                        },
+                    },
+                    levels: LoggingLevelsConfig {
+                        debug: false,
+                        info: false,
+                        warning: false,
+                        error: false,
+                        critical: false,
+                    },
+                    redaction: RedactionConfig::default(),
+                },
+                features: HashMap::new(),
+                openai_api_key: None,
+                anthropic_api_key: None,
+                groq_api_key: None,
+                perplexity_api_key: None,
+                gemini_api_key: None,
+            }
+        }
+
+        let mut config = create_test_config();
+
+        // 1. Verbose true -> debug
+        config.logging.verbose = true;
+        // Ensure even if debug is false, verbose wins
+        config.logging.levels.debug = false;
+        assert_eq!(determine_log_level(&config), "debug");
+
+        // 2. Verbose false, Debug true -> debug
+        config.logging.verbose = false;
+        config.logging.levels.debug = true;
+        assert_eq!(determine_log_level(&config), "debug");
+
+        // 3. Info
+        config.logging.levels.debug = false;
+        config.logging.levels.info = true;
+        assert_eq!(determine_log_level(&config), "info");
+
+        // 4. Warning
+        config.logging.levels.info = false;
+        config.logging.levels.warning = true;
+        assert_eq!(determine_log_level(&config), "warn");
+
+        // 5. Error
+        config.logging.levels.warning = false;
+        config.logging.levels.error = true;
+        assert_eq!(determine_log_level(&config), "error");
+
+        // 6. Critical (mapped to error for now)
+        config.logging.levels.error = false;
+        config.logging.levels.critical = true;
+        assert_eq!(determine_log_level(&config), "error");
+
+        // 7. Off
+        config.logging.levels.critical = false;
+        assert_eq!(determine_log_level(&config), "off");
     }
 }
