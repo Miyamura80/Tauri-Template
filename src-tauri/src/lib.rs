@@ -12,8 +12,8 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-fn get_app_config() -> FrontendConfig {
-    global_config::get_config().into()
+fn get_app_config() -> &'static FrontendConfig {
+    global_config::get_frontend_config()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

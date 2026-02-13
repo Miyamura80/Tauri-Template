@@ -50,7 +50,7 @@ impl AppConfig {
 
 /// A sanitized version of the configuration intended for exposure to the frontend.
 /// This strictly excludes sensitive information like API keys.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FrontendConfig {
     pub model_name: String,
     pub dot_global_config_health_check: bool,
@@ -163,29 +163,50 @@ pub struct RedactionPattern {
     pub placeholder: String,
 }
 
-static CONFIG: RwLock<Option<&'static AppConfig>> = RwLock::new(None);
+#[derive(Clone, Copy)]
+struct ConfigStorage {
+    app: &'static AppConfig,
+    frontend: &'static FrontendConfig,
+}
+
+static CONFIG_STORAGE: RwLock<Option<ConfigStorage>> = RwLock::new(None);
+
+fn get_config_storage() -> ConfigStorage {
+    if let Some(storage) = *CONFIG_STORAGE.read().unwrap() {
+        return storage;
+    }
+
+    let mut write = CONFIG_STORAGE.write().unwrap();
+    if let Some(storage) = *write {
+        return storage;
+    }
+
+    let app_config =
+        load_config().unwrap_or_else(|e| panic!("Failed to load configuration: {}", e));
+    let frontend_config = FrontendConfig::from(&app_config);
+
+    let app_cfg = Box::leak(Box::new(app_config));
+    let frontend_cfg = Box::leak(Box::new(frontend_config));
+
+    let storage = ConfigStorage {
+        app: app_cfg,
+        frontend: frontend_cfg,
+    };
+    *write = Some(storage);
+    storage
+}
 
 pub fn get_config() -> &'static AppConfig {
-    if let Some(cfg) = *CONFIG.read().unwrap() {
-        return cfg;
-    }
+    get_config_storage().app
+}
 
-    let mut write = CONFIG.write().unwrap();
-    if let Some(cfg) = *write {
-        return cfg;
-    }
-
-    let cfg =
-        Box::leak(Box::new(load_config().unwrap_or_else(|e| {
-            panic!("Failed to load configuration: {}", e)
-        })));
-    *write = Some(cfg);
-    cfg
+pub fn get_frontend_config() -> &'static FrontendConfig {
+    get_config_storage().frontend
 }
 
 #[cfg(test)]
 pub fn reset_config() {
-    let mut write = CONFIG.write().unwrap();
+    let mut write = CONFIG_STORAGE.write().unwrap();
     *write = None;
 }
 
