@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::RwLock;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct AppConfig {
     pub model_name: String,
     pub dot_global_config_health_check: bool,
@@ -28,6 +28,41 @@ pub struct AppConfig {
     pub(crate) perplexity_api_key: Option<String>,
     #[serde(skip_serializing)]
     pub(crate) gemini_api_key: Option<String>,
+}
+
+impl std::fmt::Debug for AppConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AppConfig")
+            .field("model_name", &self.model_name)
+            .field(
+                "dot_global_config_health_check",
+                &self.dot_global_config_health_check,
+            )
+            .field("dev_env", &self.dev_env)
+            .field("example_parent", &self.example_parent)
+            .field("default_llm", &self.default_llm)
+            .field("llm_config", &self.llm_config)
+            .field("logging", &self.logging)
+            .field("features", &self.features)
+            .field(
+                "openai_api_key",
+                &self.openai_api_key.as_ref().map(|_| "***"),
+            )
+            .field(
+                "anthropic_api_key",
+                &self.anthropic_api_key.as_ref().map(|_| "***"),
+            )
+            .field("groq_api_key", &self.groq_api_key.as_ref().map(|_| "***"))
+            .field(
+                "perplexity_api_key",
+                &self.perplexity_api_key.as_ref().map(|_| "***"),
+            )
+            .field(
+                "gemini_api_key",
+                &self.gemini_api_key.as_ref().map(|_| "***"),
+            )
+            .finish()
+    }
 }
 
 impl AppConfig {
@@ -417,5 +452,76 @@ mod tests {
             !config.logging.verbose,
             "Logging verbose should be false by default"
         );
+    }
+
+    #[test]
+    fn test_app_config_debug_redaction() {
+        let config = AppConfig {
+            model_name: "test-model".to_string(),
+            dot_global_config_health_check: true,
+            dev_env: "test".to_string(),
+            example_parent: ExampleParent {
+                example_child: "test-child".to_string(),
+            },
+            default_llm: DefaultLlm {
+                default_model: "test-llm".to_string(),
+                fallback_model: None,
+                default_temperature: 0.5,
+                default_max_tokens: 100,
+            },
+            llm_config: LlmConfig {
+                cache_enabled: true,
+                retry: RetryConfig {
+                    max_attempts: 3,
+                    min_wait_seconds: 1,
+                    max_wait_seconds: 10,
+                },
+            },
+            logging: LoggingConfig {
+                verbose: false,
+                format: LoggingFormatConfig {
+                    show_time: true,
+                    show_session_id: true,
+                    location: LoggingLocationConfig {
+                        enabled: true,
+                        show_file: true,
+                        show_function: true,
+                        show_line: true,
+                        show_for_info: true,
+                        show_for_debug: true,
+                        show_for_warning: true,
+                        show_for_error: true,
+                    },
+                },
+                levels: LoggingLevelsConfig {
+                    debug: true,
+                    info: true,
+                    warning: true,
+                    error: true,
+                    critical: true,
+                },
+                redaction: RedactionConfig::default(),
+            },
+            features: HashMap::new(),
+            openai_api_key: Some("sk-1234567890abcdef".to_string()),
+            anthropic_api_key: Some("ant-1234567890abcdef".to_string()),
+            groq_api_key: None,
+            perplexity_api_key: None,
+            gemini_api_key: None,
+        };
+
+        let debug_str = format!("{:?}", config);
+
+        // Check that actual keys are NOT present
+        assert!(!debug_str.contains("sk-1234567890abcdef"));
+        assert!(!debug_str.contains("ant-1234567890abcdef"));
+
+        // Check that placeholders ARE present
+        assert!(debug_str.contains("openai_api_key: Some(\"***\")"));
+        assert!(debug_str.contains("anthropic_api_key: Some(\"***\")"));
+        assert!(debug_str.contains("groq_api_key: None"));
+
+        // Verify other fields are present
+        assert!(debug_str.contains("model_name: \"test-model\""));
     }
 }
