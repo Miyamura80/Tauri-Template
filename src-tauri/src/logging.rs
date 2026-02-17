@@ -164,6 +164,21 @@ mod tests {
     use std::io::Write;
     use std::sync::Arc;
 
+    /// Helper: create a RedactingWriter that writes to a Vec<u8> buffer.
+    fn make_writer(
+        buffer: &mut Vec<u8>,
+        patterns: Vec<(Regex, String)>,
+        session_id: Option<&str>,
+    ) -> RedactingWriter<&mut Vec<u8>> {
+        RedactingWriter {
+            inner: buffer,
+            patterns: Arc::new(patterns),
+            session_id: session_id.map(|s| Arc::new(s.to_string())),
+        }
+    }
+
+    // ── Session ID ──────────────────────────────────────────────────────
+
     #[test]
     fn test_session_id_generation() {
         let id1 = get_session_id();
@@ -173,128 +188,318 @@ mod tests {
         assert!(id1.chars().all(|c| c.is_alphanumeric()));
     }
 
+    // ── RedactingWriter: session ID behaviour ───────────────────────────
+
     #[test]
-    fn test_redacting_writer_functionality() {
-        let mut buffer = Vec::new();
-        let patterns = vec![(
-            Regex::new(r"password=\w+").unwrap(),
-            "password=***".to_string(),
-        )];
-        let patterns = Arc::new(patterns);
-
-        let mut writer = RedactingWriter {
-            inner: &mut buffer,
-            patterns,
-            session_id: Some(Arc::new("TESTID".to_string())),
-        };
-
-        let input = b"login password=secret";
-        writer.write_all(input).unwrap();
-        writer.flush().unwrap();
-
-        let output = String::from_utf8(buffer).unwrap();
-        assert!(output.contains("[TESTID]"));
-        assert!(output.contains("password=***"));
-        assert!(!output.contains("secret"));
+    fn test_session_id_prepended_to_output() {
+        let mut buf = Vec::new();
+        let mut w = make_writer(&mut buf, vec![], Some("SESS01"));
+        w.write_all(b"hello world").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert_eq!(out, "[SESS01] hello world");
     }
 
     #[test]
-    fn test_determine_log_level() {
+    fn test_no_session_id_when_disabled() {
+        let mut buf = Vec::new();
+        let mut w = make_writer(&mut buf, vec![], None);
+        w.write_all(b"hello world").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert_eq!(out, "hello world");
+        assert!(!out.contains('['));
+    }
+
+    #[test]
+    fn test_session_id_skipped_for_whitespace_only_input() {
+        let mut buf = Vec::new();
+        let mut w = make_writer(&mut buf, vec![], Some("SESS01"));
+        w.write_all(b"   \n  ").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        // Whitespace-only lines are passed through without the prefix
+        assert!(!out.contains("[SESS01]"));
+        assert_eq!(out, "   \n  ");
+    }
+
+    #[test]
+    fn test_session_id_skipped_for_empty_input() {
+        let mut buf = Vec::new();
+        let mut w = make_writer(&mut buf, vec![], Some("SESS01"));
+        w.write_all(b"").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(!out.contains("[SESS01]"));
+    }
+
+    // ── RedactingWriter: single-pattern redaction ───────────────────────
+
+    #[test]
+    fn test_single_pattern_redacts_match() {
+        let mut buf = Vec::new();
+        let patterns = vec![(Regex::new(r"password=\w+").unwrap(), "password=***".into())];
+        let mut w = make_writer(&mut buf, patterns, None);
+        w.write_all(b"login password=secret123").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(out.contains("password=***"));
+        assert!(!out.contains("secret123"));
+    }
+
+    #[test]
+    fn test_no_match_passes_through_unchanged() {
+        let mut buf = Vec::new();
+        let patterns = vec![(Regex::new(r"password=\w+").unwrap(), "password=***".into())];
+        let mut w = make_writer(&mut buf, patterns, None);
+        w.write_all(b"just a normal log line").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert_eq!(out, "just a normal log line");
+    }
+
+    #[test]
+    fn test_multiple_occurrences_of_same_pattern_all_redacted() {
+        let mut buf = Vec::new();
+        let patterns = vec![(Regex::new(r"tok_\w+").unwrap(), "[REDACTED]".into())];
+        let mut w = make_writer(&mut buf, patterns, None);
+        w.write_all(b"auth tok_abc then tok_xyz end").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert_eq!(out, "auth [REDACTED] then [REDACTED] end");
+    }
+
+    // ── RedactingWriter: multiple patterns ──────────────────────────────
+
+    #[test]
+    fn test_multiple_patterns_applied_sequentially() {
+        let mut buf = Vec::new();
+        let patterns = vec![
+            (Regex::new(r"secret=\w+").unwrap(), "secret=***".into()),
+            (Regex::new(r"\d{3}-\d{2}-\d{4}").unwrap(), "[SSN]".into()),
+        ];
+        let mut w = make_writer(&mut buf, patterns, None);
+        w.write_all(b"secret=hunter2 ssn=123-45-6789").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(out.contains("secret=***"));
+        assert!(out.contains("[SSN]"));
+        assert!(!out.contains("hunter2"));
+        assert!(!out.contains("123-45-6789"));
+    }
+
+    #[test]
+    fn test_empty_patterns_list_passes_through() {
+        let mut buf = Vec::new();
+        let mut w = make_writer(&mut buf, vec![], None);
+        w.write_all(b"secret=hunter2 password=abc").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert_eq!(out, "secret=hunter2 password=abc");
+    }
+
+    // ── RedactingWriter: combined session ID + redaction ─────────────────
+
+    #[test]
+    fn test_session_id_and_redaction_together() {
+        let mut buf = Vec::new();
+        let patterns = vec![(Regex::new(r"password=\w+").unwrap(), "password=***".into())];
+        let mut w = make_writer(&mut buf, patterns, Some("TESTID"));
+        w.write_all(b"login password=secret").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(out.contains("[TESTID]"));
+        assert!(out.contains("password=***"));
+        assert!(!out.contains("secret"));
+    }
+
+    #[test]
+    fn test_redaction_applies_after_session_id_prepend() {
+        // If a pattern matches something in the session ID prefix itself,
+        // it should still be redacted (defense in depth).
+        let mut buf = Vec::new();
+        let patterns = vec![(Regex::new(r"AB12").unwrap(), "[GONE]".into())];
+        let mut w = make_writer(&mut buf, patterns, Some("AB12"));
+        w.write_all(b"hello").unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        // The session ID "AB12" is prepended, then the pattern replaces it
+        assert!(out.contains("[GONE]"));
+        assert!(!out.contains("AB12"));
+    }
+
+    // ── RedactingWriter: unicode ────────────────────────────────────────
+
+    #[test]
+    fn test_unicode_content_preserved() {
+        let mut buf = Vec::new();
+        let mut w = make_writer(&mut buf, vec![], None);
+        w.write_all("日本語テスト 🔒".as_bytes()).unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert_eq!(out, "日本語テスト 🔒");
+    }
+
+    #[test]
+    fn test_redaction_pattern_with_unicode() {
+        let mut buf = Vec::new();
+        let patterns = vec![(Regex::new(r"キー=\w+").unwrap(), "キー=***".into())];
+        let mut w = make_writer(&mut buf, patterns, None);
+        w.write_all("ログ キー=secret".as_bytes()).unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(out.contains("キー=***"));
+        assert!(!out.contains("secret"));
+    }
+
+    // ── RedactingWriter: write returns original byte count ──────────────
+
+    #[test]
+    fn test_write_returns_original_buf_len() {
+        let mut buf = Vec::new();
+        let patterns = vec![(Regex::new(r"x").unwrap(), "EXPANDED".into())];
+        let mut w = make_writer(&mut buf, patterns, Some("ID"));
+        // "x" is 1 byte, but after session ID + expansion the output is much longer
+        let n = w.write(b"x").unwrap();
+        assert_eq!(n, 1, "write() must return the original buffer length");
+    }
+
+    // ── RedactingWriter: flush ──────────────────────────────────────────
+
+    #[test]
+    fn test_flush_propagates() {
+        let mut buf = Vec::new();
+        let mut w = make_writer(&mut buf, vec![], None);
+        w.write_all(b"data").unwrap();
+        // flush should not panic or error
+        w.flush().unwrap();
+        assert_eq!(String::from_utf8(buf).unwrap(), "data");
+    }
+
+    // ── determine_log_level ─────────────────────────────────────────────
+
+    fn create_test_config() -> AppConfig {
         use crate::global_config::*;
         use std::collections::HashMap;
-
-        // Helper to create a default config for testing
-        fn create_test_config() -> AppConfig {
-            AppConfig {
-                model_name: "test".into(),
-                dot_global_config_health_check: true,
-                dev_env: "test".into(),
-                example_parent: ExampleParent {
-                    example_child: "val".into(),
+        AppConfig {
+            model_name: "test".into(),
+            dot_global_config_health_check: true,
+            dev_env: "test".into(),
+            example_parent: ExampleParent {
+                example_child: "val".into(),
+            },
+            default_llm: DefaultLlm {
+                default_model: "test".into(),
+                fallback_model: None,
+                default_temperature: 0.5,
+                default_max_tokens: 100,
+            },
+            llm_config: LlmConfig {
+                cache_enabled: false,
+                retry: RetryConfig {
+                    max_attempts: 1,
+                    min_wait_seconds: 1,
+                    max_wait_seconds: 1,
                 },
-                default_llm: DefaultLlm {
-                    default_model: "test".into(),
-                    fallback_model: None,
-                    default_temperature: 0.5,
-                    default_max_tokens: 100,
-                },
-                llm_config: LlmConfig {
-                    cache_enabled: false,
-                    retry: RetryConfig {
-                        max_attempts: 1,
-                        min_wait_seconds: 1,
-                        max_wait_seconds: 1,
+            },
+            logging: LoggingConfig {
+                verbose: false,
+                format: LoggingFormatConfig {
+                    show_time: false,
+                    show_session_id: false,
+                    location: LoggingLocationConfig {
+                        enabled: false,
+                        show_file: false,
+                        show_function: false,
+                        show_line: false,
+                        show_for_info: false,
+                        show_for_debug: false,
+                        show_for_warning: false,
+                        show_for_error: false,
                     },
                 },
-                logging: LoggingConfig {
-                    verbose: false,
-                    format: LoggingFormatConfig {
-                        show_time: false,
-                        show_session_id: false,
-                        location: LoggingLocationConfig {
-                            enabled: false,
-                            show_file: false,
-                            show_function: false,
-                            show_line: false,
-                            show_for_info: false,
-                            show_for_debug: false,
-                            show_for_warning: false,
-                            show_for_error: false,
-                        },
-                    },
-                    levels: LoggingLevelsConfig {
-                        debug: false,
-                        info: false,
-                        warning: false,
-                        error: false,
-                        critical: false,
-                    },
-                    redaction: RedactionConfig::default(),
+                levels: LoggingLevelsConfig {
+                    debug: false,
+                    info: false,
+                    warning: false,
+                    error: false,
+                    critical: false,
                 },
-                features: HashMap::new(),
-                openai_api_key: None,
-                anthropic_api_key: None,
-                groq_api_key: None,
-                perplexity_api_key: None,
-                gemini_api_key: None,
-            }
+                redaction: RedactionConfig::default(),
+            },
+            features: HashMap::new(),
+            openai_api_key: None,
+            anthropic_api_key: None,
+            groq_api_key: None,
+            perplexity_api_key: None,
+            gemini_api_key: None,
         }
+    }
 
+    #[test]
+    fn test_determine_log_level_verbose_overrides_everything() {
         let mut config = create_test_config();
-
-        // 1. Verbose true -> debug
         config.logging.verbose = true;
-        // Ensure even if debug is false, verbose wins
         config.logging.levels.debug = false;
         assert_eq!(determine_log_level(&config), "debug");
+    }
 
-        // 2. Verbose false, Debug true -> debug
-        config.logging.verbose = false;
+    #[test]
+    fn test_determine_log_level_debug() {
+        let mut config = create_test_config();
         config.logging.levels.debug = true;
         assert_eq!(determine_log_level(&config), "debug");
+    }
 
-        // 3. Info
-        config.logging.levels.debug = false;
+    #[test]
+    fn test_determine_log_level_info() {
+        let mut config = create_test_config();
         config.logging.levels.info = true;
         assert_eq!(determine_log_level(&config), "info");
+    }
 
-        // 4. Warning
-        config.logging.levels.info = false;
+    #[test]
+    fn test_determine_log_level_warning() {
+        let mut config = create_test_config();
         config.logging.levels.warning = true;
         assert_eq!(determine_log_level(&config), "warn");
+    }
 
-        // 5. Error
-        config.logging.levels.warning = false;
+    #[test]
+    fn test_determine_log_level_error() {
+        let mut config = create_test_config();
         config.logging.levels.error = true;
         assert_eq!(determine_log_level(&config), "error");
+    }
 
-        // 6. Critical (mapped to error for now)
-        config.logging.levels.error = false;
+    #[test]
+    fn test_determine_log_level_critical_maps_to_error() {
+        let mut config = create_test_config();
         config.logging.levels.critical = true;
         assert_eq!(determine_log_level(&config), "error");
+    }
 
-        // 7. Off
-        config.logging.levels.critical = false;
+    #[test]
+    fn test_determine_log_level_off_when_nothing_enabled() {
+        let config = create_test_config();
         assert_eq!(determine_log_level(&config), "off");
+    }
+
+    #[test]
+    fn test_determine_log_level_most_verbose_wins() {
+        // When multiple levels are enabled, the most verbose one wins
+        let mut config = create_test_config();
+        config.logging.levels.info = true;
+        config.logging.levels.warning = true;
+        config.logging.levels.error = true;
+        // info is more verbose than warning/error, so it should win
+        assert_eq!(determine_log_level(&config), "info");
+    }
+
+    #[test]
+    fn test_determine_log_level_verbose_plus_all_levels() {
+        let mut config = create_test_config();
+        config.logging.verbose = true;
+        config.logging.levels.debug = true;
+        config.logging.levels.info = true;
+        config.logging.levels.warning = true;
+        config.logging.levels.error = true;
+        config.logging.levels.critical = true;
+        assert_eq!(determine_log_level(&config), "debug");
+    }
+
+    #[test]
+    fn test_determine_log_level_error_and_critical_both_map_to_error() {
+        let mut config = create_test_config();
+        config.logging.levels.error = true;
+        config.logging.levels.critical = true;
+        assert_eq!(determine_log_level(&config), "error");
     }
 }
