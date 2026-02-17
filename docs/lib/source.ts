@@ -17,7 +17,6 @@ export function getPageImage(page: ReturnType<typeof source.getPage> & {}) {
 		segments,
 	};
 }
-}
 
 export async function getLLMText(
 	page: ReturnType<typeof source.getPages>[number],
