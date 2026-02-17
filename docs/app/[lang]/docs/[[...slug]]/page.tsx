@@ -1,3 +1,4 @@
+import type { LoaderConfig, LoaderOutput } from "fumadocs-core/source";
 import {
 	DocsBody,
 	DocsDescription,
@@ -5,7 +6,6 @@ import {
 	DocsTitle,
 } from "fumadocs-ui/layouts/docs/page";
 import { createRelativeLink } from "fumadocs-ui/mdx";
-import type { LoaderOutput, LoaderConfig } from "fumadocs-core/source";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
@@ -42,7 +42,10 @@ export default async function Page(
 			<DocsBody>
 				<MDX
 					components={getMDXComponents({
-						a: createRelativeLink(source as unknown as LoaderOutput<LoaderConfig>, page),
+						a: createRelativeLink(
+							source as unknown as LoaderOutput<LoaderConfig>,
+							page,
+						),
 					})}
 				/>
 			</DocsBody>
