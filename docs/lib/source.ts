@@ -13,9 +13,10 @@ export function getPageImage(page: ReturnType<typeof source.getPage> & {}) {
 	const segments = [...slug, "image.png"];
 
 	return {
-		url: `/og/docs/${segments.join("/")}`,
+		url: `/${page.locale}/og/docs/${segments.join("/")}`,
 		segments,
 	};
+}
 }
 
 export async function getLLMText(
