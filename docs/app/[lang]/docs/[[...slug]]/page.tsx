@@ -5,15 +5,18 @@ import {
 	DocsTitle,
 } from "fumadocs-ui/layouts/docs/page";
 import { createRelativeLink } from "fumadocs-ui/mdx";
+import type { LoaderOutput, LoaderConfig } from "fumadocs-core/source";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
 import { getPageImage, source } from "@/lib/source";
 import { getMDXComponents } from "@/mdx-components";
 
-export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
+export default async function Page(
+	props: PageProps<"/[lang]/docs/[[...slug]]">,
+) {
 	const params = await props.params;
-	const page = source.getPage(params.slug);
+	const page = source.getPage(params.slug, params.lang);
 	if (!page) notFound();
 
 	const MDX = page.data.body;
@@ -33,15 +36,13 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 				<LLMCopyButton markdownUrl={`${page.url}.mdx`} />
 				<ViewOptions
 					markdownUrl={`${page.url}.mdx`}
-					// update it to match your repo
 					githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/docs/content/docs/${page.path}`}
 				/>
 			</div>
 			<DocsBody>
 				<MDX
 					components={getMDXComponents({
-						// this allows you to link to other pages with relative file paths
-						a: createRelativeLink(source, page),
+						a: createRelativeLink(source as unknown as LoaderOutput<LoaderConfig>, page),
 					})}
 				/>
 			</DocsBody>
@@ -54,10 +55,10 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata(
-	props: PageProps<"/docs/[[...slug]]">,
+	props: PageProps<"/[lang]/docs/[[...slug]]">,
 ): Promise<Metadata> {
 	const params = await props.params;
-	const page = source.getPage(params.slug);
+	const page = source.getPage(params.slug, params.lang);
 	if (!page) notFound();
 
 	return {
