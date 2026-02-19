@@ -142,7 +142,7 @@ No test runner (Vitest, Jest, etc.) is installed. No test files exist.
 |----------|------|--------------|----------------|--------|
 | P1 | Frontend (Vitest setup + hooks/components) | 0 | ~15-20 | High - zero coverage today |
 | P2 | `asset_gen.rs` image processing | 2 | ~25-30 | High - complex logic, minimal coverage |
-| P3 | `logging.rs` redaction edge cases | 3 | ~10-12 | Medium - security-sensitive |
+| P3 | `logging.rs` redaction edge cases | 22 | ~5-8 remaining | Medium - security-sensitive |
 | P4 | `global_config.rs` error paths | 8 | ~10-15 | Medium - config is foundational |
 | P5 | `lib.rs` Tauri commands | 0 | ~5 | Low - simple functions |
 
