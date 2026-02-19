@@ -54,7 +54,7 @@ jobs:
       - name: Find last successful sync commit
         id: last-success
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
