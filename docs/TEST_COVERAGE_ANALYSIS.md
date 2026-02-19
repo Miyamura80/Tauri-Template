@@ -146,7 +146,7 @@ No test runner (Vitest, Jest, etc.) is installed. No test files exist.
 | P4 | `global_config.rs` error paths | 8 | ~10-15 | Medium - config is foundational |
 | P5 | `lib.rs` Tauri commands | 0 | ~5 | Low - simple functions |
 
-**Total current:** 13 tests
+**Total current:** 32 tests
 **Total proposed additions:** ~65-82 tests
 
 ### What is NOT worth testing
