@@ -29,7 +29,7 @@ pub async fn run_scenario(
                 // TODO: honour timeout_ms with tokio::time::timeout
                 let r = registry.execute(call, args.clone(), ctx);
                 // Check expectation
-                let actual_status = serde_json::to_value(&r.status)
+                let actual_status = serde_json::to_value(r.status)
                     .ok()
                     .and_then(|v| v.as_str().map(String::from))
                     .unwrap_or_default();

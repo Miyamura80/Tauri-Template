@@ -65,11 +65,7 @@ async fn handle_request(
 
     let result = match req.method.as_str() {
         "call" => {
-            let cmd_name = req
-                .params
-                .get("cmd")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let cmd_name = req.params.get("cmd").and_then(|v| v.as_str()).unwrap_or("");
             let args = req
                 .params
                 .get("args")

@@ -196,8 +196,7 @@ pub fn detect_headless() -> bool {
         }
         "macos" => {
             // Best-effort: assume not headless unless SSH_TTY is set and no display
-            std::env::var("SSH_TTY").is_ok()
-                && std::env::var("DISPLAY").is_err()
+            std::env::var("SSH_TTY").is_ok() && std::env::var("DISPLAY").is_err()
         }
         _ => false,
     }

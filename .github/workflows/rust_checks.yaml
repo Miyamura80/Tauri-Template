@@ -21,19 +21,17 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
       - name: Check Formatting
-        run: cd src-tauri && cargo fmt -- --check
+        run: cargo fmt -- --check
       - name: Run Clippy
-        run: cd src-tauri && cargo clippy -- -D warnings
+        run: cargo clippy --workspace -- -D warnings
         env:
           TAURI_SKIP_CHECK_CARGO_DEV: 1
       - name: Run Tests
-        run: cd src-tauri && cargo test
+        run: cargo test --workspace
       - name: Run cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
-          manifest-path: src-tauri/Cargo.toml
+          manifest-path: Cargo.toml
           rust-version: stable

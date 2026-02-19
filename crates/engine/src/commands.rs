@@ -65,12 +65,7 @@ impl CommandRegistry {
     }
 
     /// Execute a command by name and return a full CommandResult.
-    pub fn execute(
-        &self,
-        name: &str,
-        args: Value,
-        ctx: &AppContext,
-    ) -> CommandResult {
+    pub fn execute(&self, name: &str, args: Value, ctx: &AppContext) -> CommandResult {
         let run_id = new_run_id();
         let start = Instant::now();
 
@@ -132,14 +127,11 @@ fn cmd_read_file(args: Value, ctx: &AppContext) -> Result<Value, CommandError> {
         .ok_or_else(|| CommandError::InvalidInput("missing 'path' string field".into()))?;
 
     let path = std::path::Path::new(path_str);
-    let data = ctx
-        .fs()
-        .read_file(path)
-        .map_err(|e| match e {
-            crate::traits::CapError::PermissionDenied(m) => CommandError::PermissionDenied(m),
-            crate::traits::CapError::Io(io) => CommandError::Io(io),
-            other => CommandError::Other(other.to_string()),
-        })?;
+    let data = ctx.fs().read_file(path).map_err(|e| match e {
+        crate::traits::CapError::PermissionDenied(m) => CommandError::PermissionDenied(m),
+        crate::traits::CapError::Io(io) => CommandError::Io(io),
+        other => CommandError::Other(other.to_string()),
+    })?;
 
     let content = String::from_utf8_lossy(&data);
     Ok(serde_json::json!({
@@ -164,13 +156,11 @@ fn cmd_write_file(args: Value, ctx: &AppContext) -> Result<Value, CommandError> 
 
     let path = std::path::Path::new(path_str);
     let data = content.as_bytes();
-    ctx.fs()
-        .write_file(path, data)
-        .map_err(|e| match e {
-            crate::traits::CapError::PermissionDenied(m) => CommandError::PermissionDenied(m),
-            crate::traits::CapError::Io(io) => CommandError::Io(io),
-            other => CommandError::Other(other.to_string()),
-        })?;
+    ctx.fs().write_file(path, data).map_err(|e| match e {
+        crate::traits::CapError::PermissionDenied(m) => CommandError::PermissionDenied(m),
+        crate::traits::CapError::Io(io) => CommandError::Io(io),
+        other => CommandError::Other(other.to_string()),
+    })?;
 
     Ok(serde_json::json!({ "bytes_written": data.len() }))
 }
@@ -219,11 +209,7 @@ mod tests {
         assert_eq!(w.status, Status::Pass);
 
         // Read back
-        let r = reg.execute(
-            "read_file",
-            serde_json::json!({ "path": path_str }),
-            &ctx,
-        );
+        let r = reg.execute("read_file", serde_json::json!({ "path": path_str }), &ctx);
         assert_eq!(r.status, Status::Pass);
         assert_eq!(r.data.unwrap()["content"], "hello engine");
 

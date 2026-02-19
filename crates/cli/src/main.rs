@@ -15,7 +15,11 @@ use std::path::PathBuf;
 // ===========================================================================
 
 #[derive(Parser)]
-#[command(name = "appctl", version, about = "CLI test harness for the Tauri template app")]
+#[command(
+    name = "appctl",
+    version,
+    about = "CLI test harness for the Tauri template app"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -103,9 +107,7 @@ enum Commands {
 async fn main() {
     // Initialise tracing for CLI (structured, no tauri config dependency)
     tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-        )
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .with_writer(std::io::stderr)
         .init();
 
@@ -369,14 +371,18 @@ fn print_human(r: &CommandResult) {
 // Artifact helpers
 // ===========================================================================
 
-fn write_result_file(path: &PathBuf, result: &CommandResult) {
+fn write_result_file(path: &std::path::Path, result: &CommandResult) {
     let j = serde_json::to_string_pretty(result).unwrap_or_default();
     if let Err(e) = std::fs::write(path, &j) {
-        eprintln!("warning: failed to write result to {}: {}", path.display(), e);
+        eprintln!(
+            "warning: failed to write result to {}: {}",
+            path.display(),
+            e
+        );
     }
 }
 
-fn write_artifacts(dir: &PathBuf, result: &CommandResult) {
+fn write_artifacts(dir: &std::path::Path, result: &CommandResult) {
     let art_dir = dir.join(&result.run_id);
     if let Err(e) = std::fs::create_dir_all(&art_dir) {
         eprintln!(

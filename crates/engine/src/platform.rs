@@ -90,17 +90,13 @@ impl NetworkOps for ReqwestNetwork {
             .build()
             .map_err(|e| CapError::Network(format!("failed to build HTTP client: {}", e)))?;
 
-        let resp = client
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| {
-                if e.is_timeout() {
-                    CapError::Timeout
-                } else {
-                    CapError::Network(format!("HTTPS GET {}: {}", url, e))
-                }
-            })?;
+        let resp = client.get(url).send().await.map_err(|e| {
+            if e.is_timeout() {
+                CapError::Timeout
+            } else {
+                CapError::Network(format!("HTTPS GET {}: {}", url, e))
+            }
+        })?;
 
         let status = resp.status().as_u16();
         // Read at most 4 KiB for the snippet
@@ -209,8 +205,7 @@ fn run_clipboard_cmd(cmd: &str, args: &[&str]) -> CapResult<String> {
     if !output.status.success() {
         return Err(CapError::Other(format!(
             "{} exited with {}",
-            cmd,
-            output.status
+            cmd, output.status
         )));
     }
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
@@ -236,10 +231,7 @@ fn run_clipboard_write(cmd: &str, args: &[&str], text: &str) -> CapResult<()> {
     }
     let status = child.wait()?;
     if !status.success() {
-        return Err(CapError::Other(format!(
-            "{} exited with {}",
-            cmd, status
-        )));
+        return Err(CapError::Other(format!("{} exited with {}", cmd, status)));
     }
     Ok(())
 }

@@ -11,12 +11,7 @@ pub fn run_doctor() -> CommandResult {
 
     let report = gather_report();
 
-    let mut r = result_ok(
-        "doctor",
-        "env",
-        &run_id,
-        start.elapsed().as_millis() as u64,
-    );
+    let mut r = result_ok("doctor", "env", &run_id, start.elapsed().as_millis() as u64);
     r.data = Some(serde_json::to_value(&report).unwrap_or_default());
     r
 }

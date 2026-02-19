@@ -20,7 +20,10 @@ pub async fn run_probe(name: &str, ctx: &AppContext) -> CommandResult {
                 &run_id,
                 0,
                 ErrorCode::InvalidInput,
-                format!("unknown probe: {} (available: filesystem, network, clipboard)", name),
+                format!(
+                    "unknown probe: {} (available: filesystem, network, clipboard)",
+                    name
+                ),
             )
         }
     }
@@ -35,7 +38,10 @@ fn probe_filesystem(ctx: &AppContext) -> CommandResult {
     let start = Instant::now();
     let mut steps = HashMap::new();
 
-    let tmp_dir = ctx.fs().temp_dir().join(format!("engine_probe_{}", &run_id[..8]));
+    let tmp_dir = ctx
+        .fs()
+        .temp_dir()
+        .join(format!("engine_probe_{}", &run_id[..8]));
 
     // Step 1: create temp directory
     let t0 = Instant::now();
