@@ -7,7 +7,7 @@
 | File | Tests | Coverage Assessment |
 |------|-------|-------------------|
 | `global_config.rs` | 8 | Good - covers loading, env overrides, type coercion, sanitization |
-| `logging.rs` | 3 | Moderate - covers session ID, redaction writer, log level determination |
+| `logging.rs` | 22 | Good - covers session ID, redaction writer, log level determination, unicode, edge cases |
 | `asset_gen.rs` | 2 | Minimal - only covers `remove_greenscreen` and `ensure_square` |
 | `lib.rs` | 0 | None |
 
