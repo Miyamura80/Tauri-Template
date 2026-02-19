@@ -77,3 +77,16 @@ Structure as: `init()` → `continue(id)` → `cleanup(id)`
 - **Review**: Always trigger Greptile review MCP before pushing a PR and resolve any branch issues.
 - **Protected Branch**: `main` is protected. Do not push directly to `main`. Use PRs.
 - **Merge Strategy**: Squash and merge.
+
+---
+
+## Automated Translation (Jules Sync)
+
+Docs under `docs/content/` are auto-translated by the **Jules Translation Sync**
+workflow (`.github/workflows/jules-sync-translations.yml`). Do NOT manually
+translate doc files — edit the English source and the workflow will update all
+locales (`zh`, `es`, `ja`).
+
+See [`docs/translation-guide.md`](docs/translation-guide.md) for the full
+glossary, file naming conventions, and translation rules.
+See [`docs/ops.md`](docs/ops.md) for operational runbook and failure modes.
