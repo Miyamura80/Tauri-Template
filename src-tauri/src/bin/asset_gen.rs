@@ -517,6 +517,10 @@ struct InlineData {
     data: String,
 }
 
+// No additional test coverage needed: this is a disposable asset generation script,
+// not core application logic. It is run manually/ad-hoc and its outputs are visually
+// verified. The minimal smoke tests below guard against obvious regressions in the
+// pure image-processing helpers.
 #[cfg(test)]
 mod tests {
     use super::*;
