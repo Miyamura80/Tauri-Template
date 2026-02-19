@@ -165,11 +165,11 @@ mod tests {
     use std::sync::Arc;
 
     /// Helper: create a RedactingWriter that writes to a Vec<u8> buffer.
-    fn make_writer(
-        buffer: &mut Vec<u8>,
+    fn make_writer<'a>(
+        buffer: &'a mut Vec<u8>,
         patterns: Vec<(Regex, String)>,
-        session_id: Option<&str>,
-    ) -> RedactingWriter<&mut Vec<u8>> {
+        session_id: Option<&'a str>,
+    ) -> RedactingWriter<&'a mut Vec<u8>> {
         RedactingWriter {
             inner: buffer,
             patterns: Arc::new(patterns),
