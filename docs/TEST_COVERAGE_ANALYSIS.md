@@ -2,7 +2,7 @@
 
 ## Current State
 
-### Rust Backend: 13 tests across 3 files
+### Rust Backend: 32 tests across 3 files
 
 | File | Tests | Coverage Assessment |
 |------|-------|-------------------|
