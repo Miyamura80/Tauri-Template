@@ -33,6 +33,8 @@ Modern stack for cross-platform desktop application development.
 |---------|:----------:|
 | **Frontend** | React + TypeScript + Vite |
 | **Backend** | Native Rust (Tauri v2) |
+| **Engine** | Shared Rust crate (no Tauri dep) |
+| **CLI Test Harness** | `appctl` – headless engine runner |
 | **Config** | Rust `config` crate (YAML + Env) |
 | **Logging** | `tracing` + Redaction Layer |
 | **Package Manager** | Bun |
@@ -64,6 +66,69 @@ Modern stack for cross-platform desktop application development.
 
 - Use `make logo` / `make banner` to regenerate branding assets once per project. The targets run the Rust `asset-gen` CLI and require `APP__GEMINI_API_KEY` (set via `.env`).
 - Logos/icons land under `docs/public/`, while the banner image is written to `media/banner.png`.
+
+## CLI Test Harness (`appctl`)
+
+The repo includes a headless CLI that invokes the same engine logic as the GUI,
+designed for compatibility testing on real VMs (macOS + Linux) without a window
+server.
+
+### Architecture
+
+```
+┌──────────────┐    ┌──────────────┐
+│  Tauri GUI   │    │  appctl CLI  │
+│  (src-tauri) │    │  (crates/cli)│
+└──────┬───────┘    └──────┬───────┘
+       │                   │
+       └───────┬───────────┘
+               │
+       ┌───────▼───────┐
+       │    engine      │
+       │ (crates/engine)│
+       │                │
+       │ Commands │ Probes │ Doctor │
+       │ Traits: FS, Net, Clipboard │
+       └───────────────┘
+```
+
+All backend logic lives in the `engine` crate. Both the Tauri app and the CLI
+are thin wrappers. The engine uses trait objects for OS capabilities, so headless
+environments get structured `SKIP`/`UNSUPPORTED` results instead of crashes.
+
+### Quick Usage
+
+```bash
+# Build the CLI
+cargo build -p appctl
+
+# Run environment diagnostics
+appctl doctor --json
+
+# Invoke engine commands
+appctl call ping --json
+appctl call read_file --args '{"path": "/etc/hostname"}' --json
+
+# Probe OS capabilities
+appctl probe filesystem --json
+appctl probe network --json
+appctl probe clipboard --json    # SKIP in headless
+
+# Run a scripted scenario
+appctl run-scenario crates/cli/examples/smoke_test.yaml --json
+
+# Start daemon mode (Unix socket)
+appctl serve --socket /tmp/appctl.sock
+
+# Desktop event simulation (skeleton, returns UNIMPLEMENTED)
+appctl emit tray-click --json
+```
+
+Every command outputs a stable JSON result with `run_id`, `status`, `error`,
+`timing_ms`, and `env_summary`. Use `--artifacts <dir>` to persist
+`result.json` and `events.jsonl` per run.
+
+See [`crates/cli/README.md`](crates/cli/README.md) for full documentation.
 
 ## Configuration
 
