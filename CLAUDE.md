@@ -1,6 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI agents working with code in this repository.
 
 ## Project Overview
 
@@ -77,6 +75,10 @@ Structure as: `init()` → `continue(id)` → `cleanup(id)`
 - **Review**: Always trigger Greptile review MCP before pushing a PR and resolve any branch issues.
 - **Protected Branch**: `main` is protected. Do not push directly to `main`. Use PRs.
 - **Merge Strategy**: Squash and merge.
+
+## Runbooks
+
+Operational runbooks live in `docs/runbooks/`. After resolving a difficult issue that required significant back-and-forth or investigation, ask the user: "Should I add a runbook for this?" and if yes, create a new markdown file in `docs/runbooks/` documenting the symptoms, root cause, and resolution steps.
 
 ---
 

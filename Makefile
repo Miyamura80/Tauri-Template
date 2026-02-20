@@ -59,7 +59,27 @@ docs: ## Run docs with bun
 ########################################################
 
 ### Initialization
-.PHONY: init banner logo
+.PHONY: setup init banner logo
+
+setup: ## Set up dev environment from scratch (installs deps, copies .env, checks tooling)
+	@echo "$(BLUE)🔧 Setting up dev environment...$(RESET)"
+	@if ! command -v rustup > /dev/null 2>&1; then \
+		echo "$(RED)Error: rustup not found. Install from https://rustup.rs$(RESET)"; exit 1; \
+	fi
+	@rustup show > /dev/null 2>&1
+	@echo "$(GREEN)✅ Rust toolchain ready$(RESET)"
+	@if ! command -v bun > /dev/null 2>&1; then \
+		echo "$(RED)Error: bun not found. Install from https://bun.sh$(RESET)"; exit 1; \
+	fi
+	@bun install
+	@echo "$(GREEN)✅ Node dependencies installed$(RESET)"
+	@if [ ! -f .env ]; then \
+		cp .env.example .env; \
+		echo "$(YELLOW)⚠️  Copied .env.example → .env (fill in API keys before running)$(RESET)"; \
+	else \
+		echo "$(GREEN)✅ .env already exists$(RESET)"; \
+	fi
+	@echo "$(GREEN)✅ Setup complete. Run 'make tauri-dev' to start.$(RESET)"
 
 init: ## Initialize project (usage: make init name=my-project description="my description")
 	@if [ -z "$(name)" ] || [ -z "$(description)" ]; then \
