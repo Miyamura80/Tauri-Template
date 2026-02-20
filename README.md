@@ -12,6 +12,7 @@
   <a href="#key-features">Key Features</a> •
   <a href="#quick-start">Quick Start</a> •
   <a href="#configuration">Configuration</a> •
+  <a href="#agent-skills">Agent Skills</a> •
   <a href="#credits">Credits</a> •
   <a href="#about-the-core-contributors">About the Core Contributors</a>
 </p>
@@ -69,66 +70,7 @@ Modern stack for cross-platform desktop application development.
 
 ## CLI Test Harness (`appctl`)
 
-The repo includes a headless CLI that invokes the same engine logic as the GUI,
-designed for compatibility testing on real VMs (macOS + Linux) without a window
-server.
-
-### Architecture
-
-```
-┌──────────────┐    ┌──────────────┐
-│  Tauri GUI   │    │  appctl CLI  │
-│  (src-tauri) │    │  (crates/cli)│
-└──────┬───────┘    └──────┬───────┘
-       │                   │
-       └───────┬───────────┘
-               │
-       ┌───────▼───────┐
-       │    engine      │
-       │ (crates/engine)│
-       │                │
-       │ Commands │ Probes │ Doctor │
-       │ Traits: FS, Net, Clipboard │
-       └───────────────┘
-```
-
-All backend logic lives in the `engine` crate. Both the Tauri app and the CLI
-are thin wrappers. The engine uses trait objects for OS capabilities, so headless
-environments get structured `SKIP`/`UNSUPPORTED` results instead of crashes.
-
-### Quick Usage
-
-```bash
-# Build the CLI
-cargo build -p appctl
-
-# Run environment diagnostics
-appctl doctor --json
-
-# Invoke engine commands
-appctl call ping --json
-appctl call read_file --args '{"path": "/etc/hostname"}' --json
-
-# Probe OS capabilities
-appctl probe filesystem --json
-appctl probe network --json
-appctl probe clipboard --json    # SKIP in headless
-
-# Run a scripted scenario
-appctl run-scenario crates/cli/examples/smoke_test.yaml --json
-
-# Start daemon mode (Unix socket)
-appctl serve --socket /tmp/appctl.sock
-
-# Desktop event simulation (skeleton, returns UNIMPLEMENTED)
-appctl emit tray-click --json
-```
-
-Every command outputs a stable JSON result with `run_id`, `status`, `error`,
-`timing_ms`, and `env_summary`. Use `--artifacts <dir>` to persist
-`result.json` and `events.jsonl` per run.
-
-See [`crates/cli/README.md`](crates/cli/README.md) for full documentation.
+Headless CLI (`crates/cli`) that drives the same `engine` crate as the GUI — for VM-based compatibility testing without a window server. See [`crates/cli/README.md`](crates/cli/README.md).
 
 ## Configuration
 
@@ -139,6 +81,18 @@ Configuration is handled in Rust and exposed to the frontend via Tauri commands.
 
 ### Environment Variables
 Prefix variables with `APP__` to override YAML settings (e.g., `APP__MODEL_NAME=gpt-4`).
+
+## Agent Skills
+
+Claude Code skills live in `.claude/skills/`. Invoke them with `/skill-name`.
+
+| Skill | Description |
+|-------|-------------|
+| `/update-backend` | Guide for Rust backend changes — engine crate, Tauri commands, CLI harness, and testing patterns |
+| `/code-quality` | Run formatting and linting checks (Biome + Clippy) |
+| `/prd` | Generate a Product Requirements Document for a new feature |
+| `/ralph` | Convert a PRD to `prd.json` format for the Ralph autonomous agent |
+| `/cleanup` | Git branch hygiene — delete merged branches, prune stale refs, sync deps |
 
 ## Credits
 

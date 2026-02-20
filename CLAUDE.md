@@ -24,11 +24,12 @@ cargo clippy            # Run Rust linter
 ## Architecture
 
 - **src/** - Tauri frontend (React + TypeScript + Vite)
-- **src-tauri/** - Tauri backend (Rust)
-  - **src/global_config.rs** - Application configuration (migrated from Python)
-  - **src/logging.rs** - Tracing setup
-  - **src/lib.rs** - Main library entry point
+- **src-tauri/** - Tauri host (Rust) — wraps engine commands as Tauri handlers
+- **crates/engine/** - Platform-agnostic backend logic (no Tauri dependency)
+- **crates/cli/** - Headless CLI (`appctl`) for testing engine logic
 - **docs/** - Documentation (Next.js app)
+
+> **Making backend changes?** Use the `update-backend` skill for architecture details, command patterns, trait implementations, config access, and `appctl` testing workflows.
 
 ## Code Style
 
@@ -36,11 +37,6 @@ cargo clippy            # Run Rust linter
 - `camelCase` for functions/variables
 - `PascalCase` for components/classes
 - Use Biome for formatting/linting
-
-### Rust (Backend)
-- `snake_case` for functions/modules/variables
-- `PascalCase` for structs/enums
-- Follow standard Rust formatting (`cargo fmt`)
 
 ## Configuration Pattern
 
