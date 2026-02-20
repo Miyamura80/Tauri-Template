@@ -116,6 +116,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
+name = "appctl"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "engine",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "arbitrary"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1149,6 +1163,21 @@ name = "endi"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
+
+[[package]]
+name = "engine"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
+]
 
 [[package]]
 name = "enumflags2"
@@ -4410,6 +4439,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap 2.13.0",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "serial_test"
 version = "3.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4846,6 +4888,7 @@ dependencies = [
  "base64 0.22.1",
  "clap",
  "config",
+ "engine",
  "image",
  "rand 0.8.5",
  "regex",
@@ -5460,6 +5503,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-serde"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704b1aeb7be0d0a84fc9828cae51dab5970fee5088f83d1dd7ee6f6246fc6ff1"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
 name = "tracing-subscriber"
 version = "0.3.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5469,12 +5522,15 @@ dependencies = [
  "nu-ansi-term",
  "once_cell",
  "regex-automata",
+ "serde",
+ "serde_json",
  "sharded-slab",
  "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
  "tracing-log",
+ "tracing-serde",
 ]
 
 [[package]]
@@ -5586,6 +5642,12 @@ name = "unicode-segmentation"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"
