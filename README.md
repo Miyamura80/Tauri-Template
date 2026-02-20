@@ -12,6 +12,7 @@
   <a href="#key-features">Key Features</a> •
   <a href="#quick-start">Quick Start</a> •
   <a href="#configuration">Configuration</a> •
+  <a href="#agent-skills">Agent Skills</a> •
   <a href="#credits">Credits</a> •
   <a href="#about-the-core-contributors">About the Core Contributors</a>
 </p>
@@ -80,6 +81,18 @@ Configuration is handled in Rust and exposed to the frontend via Tauri commands.
 
 ### Environment Variables
 Prefix variables with `APP__` to override YAML settings (e.g., `APP__MODEL_NAME=gpt-4`).
+
+## Agent Skills
+
+Claude Code skills live in `.claude/skills/`. Invoke them with `/skill-name`.
+
+| Skill | Description |
+|-------|-------------|
+| `/update-backend` | Guide for Rust backend changes — engine crate, Tauri commands, CLI harness, and testing patterns |
+| `/code-quality` | Run formatting and linting checks (Biome + Clippy) |
+| `/prd` | Generate a Product Requirements Document for a new feature |
+| `/ralph` | Convert a PRD to `prd.json` format for the Ralph autonomous agent |
+| `/cleanup` | Git branch hygiene — delete merged branches, prune stale refs, sync deps |
 
 ## Credits
 
