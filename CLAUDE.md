@@ -14,21 +14,17 @@ bun run tauri dev       # Run the app in development mode
 bun run build           # Build the frontend
 bun run tauri build     # Build the Tauri application
 bun run check           # Run formatting and linting (Biome)
-
-# Rust / Backend
-cargo test              # Run Rust tests
-cargo check             # Check Rust code
-cargo clippy            # Run Rust linter
 ```
 
 ## Architecture
 
 - **src/** - Tauri frontend (React + TypeScript + Vite)
-- **src-tauri/** - Tauri backend (Rust)
-  - **src/global_config.rs** - Application configuration (migrated from Python)
-  - **src/logging.rs** - Tracing setup
-  - **src/lib.rs** - Main library entry point
+- **src-tauri/** - Tauri host (Rust) — wraps engine commands as Tauri handlers
+- **crates/engine/** - Platform-agnostic backend logic (no Tauri dependency)
+- **crates/cli/** - Headless CLI (`appctl`) for testing engine logic
 - **docs/** - Documentation (Next.js app)
+
+> **Making backend changes?** Use the `update-backend` skill for architecture details, command patterns, trait implementations, config access, and `appctl` testing workflows.
 
 ## Code Style
 
@@ -36,22 +32,6 @@ cargo clippy            # Run Rust linter
 - `camelCase` for functions/variables
 - `PascalCase` for components/classes
 - Use Biome for formatting/linting
-
-### Rust (Backend)
-- `snake_case` for functions/modules/variables
-- `PascalCase` for structs/enums
-- Follow standard Rust formatting (`cargo fmt`)
-
-## Configuration Pattern
-
-Configuration is handled in Rust and exposed to the frontend.
-Source of truth: `src-tauri/global_config.yaml` (and `.env` overrides).
-
-```rust
-// Accessing config in Rust
-let config = crate::global_config::get_config();
-println!("Model: {}", config.default_llm.default_model);
-```
 
 ## Commit Message Convention
 
