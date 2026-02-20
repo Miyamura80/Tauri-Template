@@ -14,6 +14,11 @@ bun run tauri dev       # Run the app in development mode
 bun run build           # Build the frontend
 bun run tauri build     # Build the Tauri application
 bun run check           # Run formatting and linting (Biome)
+
+# Rust / Backend
+cargo test              # Run Rust tests
+cargo check             # Check Rust code
+cargo clippy            # Run Rust linter
 ```
 
 ## Architecture
