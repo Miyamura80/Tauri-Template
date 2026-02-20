@@ -33,6 +33,17 @@ bun run check           # Run formatting and linting (Biome)
 - `PascalCase` for components/classes
 - Use Biome for formatting/linting
 
+## Configuration Pattern
+
+Configuration is handled in Rust and exposed to the frontend.
+Source of truth: `src-tauri/global_config.yaml` (and `.env` overrides).
+
+```rust
+// Accessing config in Rust
+let config = crate::global_config::get_config();
+println!("Model: {}", config.default_llm.default_model);
+```
+
 ## Commit Message Convention
 
 Use emoji prefixes indicating change type and magnitude (multiple emojis = 5+ files):
