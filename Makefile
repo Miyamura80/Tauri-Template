@@ -191,3 +191,26 @@ link-check: ## Check for broken links in markdown files
 
 ci: fmt lint knip audit link-check test ## Run all CI checks
 	@echo "$(GREEN)✅ CI checks completed.$(RESET)"
+
+
+########################################################
+# Release
+########################################################
+
+### Release
+.PHONY: bump-version
+bump-version: ## Bump version across all manifests (usage: make bump-version VERSION=x.y.z)
+	@if [ -z "$(VERSION)" ]; then \
+		echo "$(RED)Error: VERSION is required$(RESET)"; \
+		echo "Usage: make bump-version VERSION=x.y.z"; \
+		exit 1; \
+	fi
+	@jq --arg v "$(VERSION)" '.version = $$v' src-tauri/tauri.conf.json > /tmp/_tauri.conf.json && mv /tmp/_tauri.conf.json src-tauri/tauri.conf.json
+	@sed -i.bak '0,/^version = "[^"]*"/s/^version = "[^"]*"/version = "$(VERSION)"/' src-tauri/Cargo.toml && rm src-tauri/Cargo.toml.bak
+	@jq --arg v "$(VERSION)" '.version = $$v' package.json > /tmp/_package.json && mv /tmp/_package.json package.json
+	@echo "$(GREEN)✅ Version bumped to $(VERSION) in tauri.conf.json, Cargo.toml, and package.json$(RESET)"
+	@echo "$(YELLOW)Next steps:$(RESET)"
+	@echo "  git add src-tauri/tauri.conf.json src-tauri/Cargo.toml package.json"
+	@echo "  git commit -m '⚙️ bump version to $(VERSION)'"
+	@echo "  git tag v$(VERSION)"
+	@echo "  git push origin main --tags"
