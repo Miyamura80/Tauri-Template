@@ -305,24 +305,23 @@ body,
 	}
 }
 
-/* ─── Settings Overlay ──────────────────────────────────────────────────── */
+/* ─── Settings Dialog ───────────────────────────────────────────────────── */
 
-.settings-overlay {
+dialog.settings-dialog {
 	position: fixed;
 	inset: 0;
-	background: rgba(0, 0, 0, 0.25);
-	z-index: 50;
-	opacity: 0;
-	pointer-events: none;
-	transition: opacity 150ms ease;
-	border: none;
+	width: 100%;
+	height: 100%;
+	max-width: 100%;
+	max-height: 100%;
 	padding: 0;
-	cursor: default;
+	border: none;
+	background: transparent;
+	overflow: hidden;
 }
 
-.settings-overlay--open {
-	opacity: 1;
-	pointer-events: all;
+dialog.settings-dialog::backdrop {
+	background: rgba(0, 0, 0, 0.25);
 }
 
 /* ─── Settings Panel (slides from right) ────────────────────────────────── */
@@ -337,7 +336,6 @@ body,
 	border-left: 1px solid var(--color-border);
 	transform: translateX(100%);
 	transition: transform 200ms ease;
-	z-index: 51;
 	display: flex;
 	flex-direction: column;
 	overflow-y: auto;

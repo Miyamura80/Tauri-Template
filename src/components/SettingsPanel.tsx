@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { AppConfig } from "../hooks/useConfig";
 import type { ChatSettings } from "./Chat";
 
@@ -9,10 +10,6 @@ interface SettingsPanelProps {
 	config: AppConfig | null;
 }
 
-function stopKeyProp(e: React.KeyboardEvent) {
-	e.stopPropagation();
-}
-
 export function SettingsPanel({
 	open,
 	onClose,
@@ -20,27 +17,31 @@ export function SettingsPanel({
 	onChange,
 	config,
 }: SettingsPanelProps) {
-	function handleOverlayKey(e: React.KeyboardEvent) {
-		if (e.key === "Escape") onClose();
-	}
+	const dialogRef = useRef<HTMLDialogElement>(null);
 
-	function stopProp(e: React.MouseEvent) {
-		e.stopPropagation();
+	useEffect(() => {
+		const dialog = dialogRef.current;
+		if (!dialog) return;
+		if (open) {
+			if (!dialog.open) dialog.showModal();
+		} else {
+			if (dialog.open) dialog.close();
+		}
+	}, [open]);
+
+	function handleDialogClick(e: React.MouseEvent<HTMLDialogElement>) {
+		if (e.target === e.currentTarget) onClose();
 	}
 
 	return (
-		<button
-			type="button"
-			className={`settings-overlay${open ? " settings-overlay--open" : ""}`}
-			onClick={onClose}
-			onKeyDown={handleOverlayKey}
-			aria-label="Close settings"
+		<dialog
+			ref={dialogRef}
+			className="settings-dialog"
+			onClick={handleDialogClick}
+			onKeyDown={undefined}
+			onClose={onClose}
 		>
-			<aside
-				className={`settings-panel${open ? " settings-panel--open" : ""}`}
-				onClick={stopProp}
-				onKeyDown={stopKeyProp}
-			>
+			<aside className={`settings-panel${open ? " settings-panel--open" : ""}`}>
 				<div className="settings-header">
 					<span>Settings</span>
 					<button
@@ -207,6 +208,6 @@ export function SettingsPanel({
 					</section>
 				</div>
 			</aside>
-		</button>
+		</dialog>
 	);
 }
