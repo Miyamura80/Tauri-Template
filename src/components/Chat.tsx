@@ -157,15 +157,15 @@ export function Chat() {
 							className={`chat-bubble chat-bubble--${msg.role}${settings.compactBubbles ? " chat-bubble--compact" : ""}`}
 						>
 							{msg.content}
+							{settings.showTimestamps && (
+								<time className="chat-message-time">
+									{msg.timestamp.toLocaleTimeString([], {
+										hour: "2-digit",
+										minute: "2-digit",
+									})}
+								</time>
+							)}
 						</div>
-						{settings.showTimestamps && (
-							<time className="chat-message-time">
-								{msg.timestamp.toLocaleTimeString([], {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
-							</time>
-						)}
 					</div>
 				))}
 
