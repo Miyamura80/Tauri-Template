@@ -85,7 +85,6 @@ skip = [
     "toml_datetime",
     "toml_edit",
     "wasi",
-    "windows-core",
     "windows-link",
     "windows-result",
     "windows-strings",
