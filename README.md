@@ -24,7 +24,7 @@
   <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Miyamura80/Tauri-Template/rust_checks.yaml?branch=main">
 </p>
 
---- 
+---
 
 ## Key Features
 

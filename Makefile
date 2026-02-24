@@ -146,7 +146,12 @@ test_flaky: ## Repeat fast tests to detect flaky tests
 ########################################################
 
 ### Code Quality
-.PHONY: fmt lint knip audit link-check ci
+.PHONY: fmt lint knip audit link-check ci prek
+
+prek: ## Run prek on all files
+	@echo "$(YELLOW)🔍Running prek...$(RESET)"
+	prek run --all-files
+	@echo "$(GREEN)✅Prek checks completed.$(RESET)"
 
 fmt: ## Format code with Biome and rustfmt
 	@echo "$(YELLOW)✨ Formatting and linting with Biome...$(RESET)"

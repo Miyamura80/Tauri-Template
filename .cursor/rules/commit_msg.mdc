@@ -5,7 +5,7 @@ alwaysApply: false
 
 Please follow the following for commit message convention:
 
-- 🏗️ {msg} : initial first pass implementation 
+- 🏗️ {msg} : initial first pass implementation
 - 🔨 {msg} : make feature changes to code, not fully tested
 - 🐛 {msg} : bugfix based on an initial user reported error/debugging, not fully tested
 - 📝 {msg} : writing/editing docs or `./cursor/rules` (incl AGENT.md)
@@ -25,4 +25,3 @@ Please use multiple emojis for larger commits, to emphasize the size of the comm
 - 🐛🐛🐛 {msg} : Large number of files modified to fix a bug (8+)
 - 🐛🐛 {msg} : Multiple files modified to fix a bug (4-7)
 - 🐛 {msg} : Few files modified to fix a bug (1-3)
-

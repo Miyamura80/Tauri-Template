@@ -31,7 +31,7 @@ jobs:
           echo "Error: $FILE not found."
           exit 1
         fi
-        
+
         MISSING=0
         for section in "${REQUIRED_SECTIONS[@]}"; do
           if ! grep -q "^## $section" "$FILE"; then
@@ -39,7 +39,7 @@ jobs:
             MISSING=1
           fi
         done
-        
+
         if [ $MISSING -eq 1 ]; then
           exit 1
         fi
