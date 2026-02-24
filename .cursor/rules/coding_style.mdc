@@ -1,6 +1,6 @@
 ---
 description: Coding style rules
-globs: 
+globs:
 alwaysApply: true
 ---
 ## Stylistic preferences

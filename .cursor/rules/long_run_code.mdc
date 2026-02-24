@@ -1,19 +1,19 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: false
 ---
 This pattern should apply for all long-running code.
 
 Unbundle run() into:
 
-- init() 
+- init()
 - continue(id)
 - cleanup(id)
 
 Never assume you will call these in order.
 
-Always checkpoint and resume from id's. 
+Always checkpoint and resume from id's.
 
 Pass nothing else.
 

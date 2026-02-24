@@ -1,6 +1,6 @@
 ---
 description: Standards for using logging in the project.
-globs: 
+globs:
 alwaysApply: true
 ---
 ## Logging Configuration
