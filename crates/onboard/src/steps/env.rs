@@ -159,6 +159,7 @@ pub fn run(project_root: &Path) -> StepResult {
 
     if selections.is_empty() {
         ui::print_skip("No variables selected.");
+        return StepResult::Skipped;
     }
 
     // Collect new values
