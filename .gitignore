@@ -21,6 +21,8 @@ src-tauri/target/
 # Bun lock cache
 bun.lockb
 docs/bun.lockb
+media/promo/bun.lockb
+media/promo/package-lock.json
 
 # Environments & secrets
 .env

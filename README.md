@@ -24,7 +24,11 @@
   <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Miyamura80/Tauri-Template/rust_checks.yaml?branch=main">
 </p>
 
---- 
+<p align="center">
+  <img src="media/promo.gif" alt="Crab and Bun build and test a desktop app" width="600">
+</p>
+
+---
 
 ## Key Features
 

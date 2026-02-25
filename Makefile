@@ -97,7 +97,7 @@ init: ## Initialize project (usage: make init name=my-project description="my de
 	@echo "$(GREEN)✅ Updated project name, identifier, and description.$(RESET)"
 
 ### Asset Generation
-.PHONY: banner logo
+.PHONY: banner logo promo
 
 banner: ## Generate project banner image (requires APP__GEMINI_API_KEY)
 	@echo "$(YELLOW)🔍Generating banner...$(RESET)"
@@ -108,6 +108,11 @@ logo: ## Generate logo, icons, and favicon (requires APP__GEMINI_API_KEY)
 	@echo "$(YELLOW)🔍Generating logo and favicon...$(RESET)"
 	@cd src-tauri && cargo run --bin asset-gen -- logo
 	@echo "$(GREEN)✅Logo assets saved to docs/public/$(RESET)"
+
+promo: ## Generate promotional GIF animation
+	@echo "$(YELLOW)🎬 Rendering promotional GIF...$(RESET)"
+	@cd media/promo && bun install && bun run render
+	@echo "$(GREEN)✅ Promo GIF rendered at media/promo.gif$(RESET)"
 
 
 

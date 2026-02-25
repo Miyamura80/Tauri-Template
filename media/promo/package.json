@@ -1,0 +1,19 @@
+{
+  "name": "tauri-template-promo",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Promo --image-format=png --every-nth-frame=3 --output=../promo.gif"
+  },
+  "dependencies": {
+    "remotion": "^4.0.428",
+    "@remotion/cli": "^4.0.428",
+    "@remotion/google-fonts": "^4.0.428",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "typescript": "~5.9.3"
+  }
+}
