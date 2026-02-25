@@ -90,7 +90,7 @@ pub fn run(project_root: &Path) -> StepResult {
                 } else {
                     v
                 };
-                (k.trim().to_string(), v.to_string())
+                (k.trim().to_string(), v.replace("\\\"", "\"").replace("\\\\", "\\"))
             }))
             .collect()
     } else {

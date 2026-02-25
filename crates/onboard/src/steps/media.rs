@@ -98,7 +98,7 @@ fn load_dotenv(path: &Path) -> Vec<(String, String)> {
                 } else {
                     v
                 };
-                (k.trim().to_string(), v.to_string())
+                (k.trim().to_string(), v.replace("\\\"", "\"").replace("\\\\", "\\"))
             })
         })
         .filter(|(_, v)| !v.is_empty())
