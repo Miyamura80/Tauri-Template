@@ -83,7 +83,15 @@ pub fn run(project_root: &Path) -> StepResult {
             .unwrap_or_default()
             .lines()
             .filter(|l| !l.trim().starts_with('#') && l.contains('='))
-            .filter_map(|l| l.split_once('=').map(|(k, v)| (k.trim().to_string(), v.trim().to_string())))
+            .filter_map(|l| l.split_once('=').map(|(k, v)| {
+                let v = v.trim();
+                let v = if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
+                    &v[1..v.len() - 1]
+                } else {
+                    v
+                };
+                (k.trim().to_string(), v.to_string())
+            }))
             .collect()
     } else {
         BTreeMap::new()

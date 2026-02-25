@@ -91,8 +91,15 @@ fn load_dotenv(path: &Path) -> Vec<(String, String)> {
         .lines()
         .filter(|l| !l.trim().starts_with('#') && l.contains('='))
         .filter_map(|l| {
-            l.split_once('=')
-                .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
+            l.split_once('=').map(|(k, v)| {
+                let v = v.trim();
+                let v = if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
+                    &v[1..v.len() - 1]
+                } else {
+                    v
+                };
+                (k.trim().to_string(), v.to_string())
+            })
         })
         .filter(|(_, v)| !v.is_empty())
         .collect()
