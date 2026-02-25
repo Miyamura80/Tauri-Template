@@ -215,7 +215,7 @@ pub fn run(project_root: &Path) -> StepResult {
                     // Comment out unconfigured vars
                     output.push_str(&format!("# {}=\n", key));
                 } else {
-                    output.push_str(&format!("{}={}\n", key, val));
+                    output.push_str(&format!("{}=\"{}\"\n", key, val.replace('\\', "\\\\").replace('"', "\\\"")));
                 }
             } else {
                 output.push_str(&format!("# {}=\n", key));
