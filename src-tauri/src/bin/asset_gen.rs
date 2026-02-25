@@ -352,12 +352,12 @@ impl GeminiClient {
         payload: &GenerateContentRequest,
     ) -> Result<GenerateContentResponse> {
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={}",
-            self.api_key
+            "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         );
         let response = self
             .http
             .post(&url)
+            .header("x-goog-api-key", &self.api_key)
             .json(payload)
             .send()
             .await
