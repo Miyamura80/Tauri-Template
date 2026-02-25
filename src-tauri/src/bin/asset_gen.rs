@@ -13,7 +13,7 @@ use image::{ColorType, DynamicImage, GenericImage, ImageBuffer, Rgba, RgbaImage}
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri_template_lib::{config, logging};
+use tauri_app_lib::{config, logging};
 use tracing::{error, info};
 
 const IMAGE_MODEL: &str = "gemini-3-pro-image-preview";
@@ -288,7 +288,7 @@ impl GeminiClient {
         let text_model = cfg
             .model_name
             .rsplit_once('/')
-            .map(|(_, name)| name.to_string())
+            .map(|(_, name): (&str, &str)| name.to_string())
             .unwrap_or_else(|| cfg.model_name.clone());
         Ok(Self {
             http: Client::new(),
