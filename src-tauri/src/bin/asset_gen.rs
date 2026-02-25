@@ -13,7 +13,7 @@ use image::{ColorType, DynamicImage, GenericImage, ImageBuffer, Rgba, RgbaImage}
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri_app_lib::{config, logging};
+use tauri_template_lib::{config, logging};
 use tracing::{error, info};
 
 const IMAGE_MODEL: &str = "gemini-3-pro-image-preview";
@@ -284,7 +284,12 @@ impl GeminiClient {
             .gemini_api_key()
             .ok_or_else(|| anyhow!("Missing APP__GEMINI_API_KEY"))?
             .to_string();
-        let text_model = cfg.model_name.clone();
+        // Strip provider prefix (e.g. "gemini/gemini-3-flash-preview" -> "gemini-3-flash-preview")
+        let text_model = cfg
+            .model_name
+            .rsplit_once('/')
+            .map(|(_, name)| name.to_string())
+            .unwrap_or_else(|| cfg.model_name.clone());
         Ok(Self {
             http: Client::new(),
             api_key,
@@ -347,12 +352,12 @@ impl GeminiClient {
         payload: &GenerateContentRequest,
     ) -> Result<GenerateContentResponse> {
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={}",
+            self.api_key
         );
         let response = self
             .http
             .post(&url)
-            .bearer_auth(&self.api_key)
             .json(payload)
             .send()
             .await
@@ -415,20 +420,21 @@ fn extract_first_image(response: &GenerateContentResponse) -> Option<DynamicImag
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct GenerateContentRequest {
-    response_modalities: Vec<String>,
-    contents: Vec<ContentInput>,
-    config: GenerateContentConfig,
+    contents: Vec<RequestContent>,
+    generation_config: GenerationConfig,
 }
 
 impl GenerateContentRequest {
     fn new_text(prompt: &str) -> Self {
         Self {
-            response_modalities: vec!["TEXT".into()],
-            contents: vec![ContentInput::Text(TextContent {
-                text: prompt.into(),
-            })],
-            config: GenerateContentConfig {
+            contents: vec![RequestContent {
+                parts: vec![RequestPart::Text {
+                    text: prompt.into(),
+                }],
+            }],
+            generation_config: GenerationConfig {
                 response_modalities: vec!["TEXT".into()],
             },
         }
@@ -436,11 +442,12 @@ impl GenerateContentRequest {
 
     fn new_image(prompt: &str) -> Self {
         Self {
-            response_modalities: vec!["IMAGE".into(), "TEXT".into()],
-            contents: vec![ContentInput::Text(TextContent {
-                text: prompt.into(),
-            })],
-            config: GenerateContentConfig {
+            contents: vec![RequestContent {
+                parts: vec![RequestPart::Text {
+                    text: prompt.into(),
+                }],
+            }],
+            generation_config: GenerationConfig {
                 response_modalities: vec!["IMAGE".into(), "TEXT".into()],
             },
         }
@@ -448,14 +455,17 @@ impl GenerateContentRequest {
 
     fn new_image_with_ref(prompt: &str, inline: InlineImage) -> Self {
         Self {
-            response_modalities: vec!["IMAGE".into(), "TEXT".into()],
-            contents: vec![
-                ContentInput::Text(TextContent {
-                    text: prompt.into(),
-                }),
-                ContentInput::Image(ImageContent { image: inline }),
-            ],
-            config: GenerateContentConfig {
+            contents: vec![RequestContent {
+                parts: vec![
+                    RequestPart::Text {
+                        text: prompt.into(),
+                    },
+                    RequestPart::InlineData {
+                        inline_data: inline,
+                    },
+                ],
+            }],
+            generation_config: GenerationConfig {
                 response_modalities: vec!["IMAGE".into(), "TEXT".into()],
             },
         }
@@ -463,28 +473,30 @@ impl GenerateContentRequest {
 }
 
 #[derive(Serialize)]
-struct GenerateContentConfig {
-    response_modalities: Vec<String>,
+struct RequestContent {
+    parts: Vec<RequestPart>,
 }
 
 #[derive(Serialize)]
 #[serde(untagged)]
-enum ContentInput {
-    Text(TextContent),
-    Image(ImageContent),
+enum RequestPart {
+    Text {
+        text: String,
+    },
+    InlineData {
+        #[serde(rename = "inlineData")]
+        inline_data: InlineImage,
+    },
 }
 
 #[derive(Serialize)]
-struct TextContent {
-    text: String,
+#[serde(rename_all = "camelCase")]
+struct GenerationConfig {
+    response_modalities: Vec<String>,
 }
 
 #[derive(Serialize)]
-struct ImageContent {
-    image: InlineImage,
-}
-
-#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct InlineImage {
     mime_type: String,
     data: String,
@@ -506,12 +518,14 @@ struct Content {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ContentPart {
     text: Option<String>,
     inline_data: Option<InlineData>,
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct InlineData {
     mime_type: String,
     data: String,
