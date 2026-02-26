@@ -18,13 +18,17 @@
 </p>
 
 <p align="center">
-  <img alt="Project Version" src="https://img.shields.io/github/v/release/Miyamura80/Tauri-Template?label=version&color=blue">
+  <img alt="Project Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2FMiyamura80%2FTauri-Template%2Fmain%2Fsrc-tauri%2FCargo.toml&query=%24.package.version&label=version&color=blue">
   <img alt="Rust Version" src="https://img.shields.io/badge/rust-1.75%2B-blue?logo=rust">
   <img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/Miyamura80/Tauri-Template">
   <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Miyamura80/Tauri-Template/rust_checks.yaml?branch=main">
 </p>
 
---- 
+<p align="center">
+  <img src="media/promo.gif" alt="Crab and Bun build and test a desktop app" width="600">
+</p>
+
+---
 
 ## Key Features
 
