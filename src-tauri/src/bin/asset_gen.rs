@@ -58,6 +58,11 @@ enum Command {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Install ring as the rustls crypto provider (reqwest needs this with rustls-no-provider)
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     logging::init_logging();
     let cli = Cli::parse();
     let client = GeminiClient::new()?;

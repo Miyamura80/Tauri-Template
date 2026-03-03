@@ -65,6 +65,11 @@ fn engine_list_commands() -> Vec<String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Install ring as the rustls crypto provider (reqwest needs this with rustls-no-provider)
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     // Initialize logging
     logging::init_logging();
 

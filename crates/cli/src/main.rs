@@ -105,6 +105,11 @@ enum Commands {
 
 #[tokio::main]
 async fn main() {
+    // Install ring as the rustls crypto provider (reqwest needs this with rustls-no-provider)
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     // Initialise tracing for CLI (structured, no tauri config dependency)
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
