@@ -7,7 +7,7 @@ This document explains how to release a new version of the app for distribution.
 Pushing a `v*` git tag triggers the [Release workflow](.github/workflows/release.yml), which:
 
 1. Builds the app on all three platforms in parallel
-2. Produces signed installersinstalled per platform (see table below)
+2. Produces signed installers per platform (see table below)
 3. Creates a GitHub Release and attaches all installers as assets
 4. Generates a `latest.json` updater manifest so existing users are notified in-app
 
