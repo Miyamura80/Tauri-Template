@@ -71,6 +71,20 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .setup(|app| {
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(Some(update)) = tauri_plugin_updater::UpdaterExt::updater(&handle)
+                    .unwrap()
+                    .check()
+                    .await
+                {
+                    // dialog: true in tauri.conf.json fires the built-in install prompt
+                    let _ = update.download_and_install(|_, _| {}, || {}).await;
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             greet,
             get_app_config,

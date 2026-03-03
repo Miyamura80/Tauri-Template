@@ -206,7 +206,7 @@ bump-version: ## Bump version across all manifests (usage: make bump-version VER
 		exit 1; \
 	fi
 	@jq --arg v "$(VERSION)" '.version = $$v' src-tauri/tauri.conf.json > /tmp/_tauri.conf.json && mv /tmp/_tauri.conf.json src-tauri/tauri.conf.json
-	@sed -i.bak '0,/^version = "[^"]*"/s/^version = "[^"]*"/version = "$(VERSION)"/' src-tauri/Cargo.toml && rm src-tauri/Cargo.toml.bak
+	@perl -i.bak -0pe 's/^version = "[^"]*"/version = "$(VERSION)"/m' src-tauri/Cargo.toml && rm src-tauri/Cargo.toml.bak
 	@jq --arg v "$(VERSION)" '.version = $$v' package.json > /tmp/_package.json && mv /tmp/_package.json package.json
 	@echo "$(GREEN)✅ Version bumped to $(VERSION) in tauri.conf.json, Cargo.toml, and package.json$(RESET)"
 	@echo "$(YELLOW)Next steps:$(RESET)"
