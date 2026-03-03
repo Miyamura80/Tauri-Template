@@ -45,6 +45,7 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "NCSA",
     "CDLA-Permissive-2.0",
+    "OpenSSL",
 ]
 
 [bans]
@@ -60,8 +61,6 @@ skip = [
     "bitflags",
     "convert_case",
     "core-foundation",
-    "foreign-types",
-    "foreign-types-shared",
     "getrandom",
     "hashbrown",
     "heck",
