@@ -60,8 +60,6 @@ skip = [
     "bitflags",
     "convert_case",
     "core-foundation",
-    "foreign-types",
-    "foreign-types-shared",
     "getrandom",
     "hashbrown",
     "heck",
