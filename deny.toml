@@ -45,7 +45,6 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "NCSA",
     "CDLA-Permissive-2.0",
-    "OpenSSL",
 ]
 
 [bans]
