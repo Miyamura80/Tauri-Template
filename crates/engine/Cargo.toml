@@ -12,7 +12,6 @@ serde_yaml = "0.9"
 tracing = "0.1"
 uuid = { version = "1", features = ["v4"] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider", "http2", "charset", "system-proxy"] }
-rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "net", "io-util"] }
 thiserror = "2"
 async-trait = "0.1"
