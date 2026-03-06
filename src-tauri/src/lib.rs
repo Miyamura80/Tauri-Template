@@ -74,13 +74,11 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Ok(Some(update)) = tauri_plugin_updater::UpdaterExt::updater(&handle)
-                    .unwrap()
-                    .check()
-                    .await
-                {
-                    // dialog: true in tauri.conf.json fires the built-in install prompt
-                    let _ = update.download_and_install(|_, _| {}, || {}).await;
+                if let Ok(updater) = tauri_plugin_updater::UpdaterExt::updater(&handle) {
+                    if let Ok(Some(_update)) = updater.check().await {
+                        // Notify the frontend; JS handles the confirmation dialog
+                        let _ = handle.emit("update-available", ());
+                    }
                 }
             });
             Ok(())
