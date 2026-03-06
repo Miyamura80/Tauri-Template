@@ -26,7 +26,7 @@
 		"rollup": ">=4.59.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.4",
+		"@biomejs/biome": "^2.4.5",
 		"@tauri-apps/cli": "^2.10.0",
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
