@@ -29,6 +29,7 @@ jobs:
         with:
           command: check
           manifest-path: Cargo.toml
+          config: src-tauri/deny.toml
           rust-version: stable
 
   clippy-test:
