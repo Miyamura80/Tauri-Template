@@ -13,4 +13,4 @@ This skill provides instructions for using `prek` in the Tauri-Template project.
 The configuration is located in `prek.toml`.
 ## Workflow
 1.  **Before Committing**: Run `prek run` to check your changes.
-2.  **CI**: The CI pipeline will run checks. Ensure `prek run --all-files` passes locally.
+2.  **CI**: The CI pipeline runs `make ci` directly. Running `prek run --all-files` locally is a good pre-push sanity check, but the authoritative gate is `make ci`.
