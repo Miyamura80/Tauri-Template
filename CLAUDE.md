@@ -72,6 +72,7 @@ Structure as: `init()` → `continue(id)` → `cleanup(id)`
 - **Protected Branch**: `main` is protected. Do not push directly to `main`. Use PRs.
 - **Merge Strategy**: Squash and merge.
 - **Pre-commit CI gate**: Always run `make ci` before committing any changes. Ensure it passes with zero errors. Do not commit if `make ci` fails - fix all issues first, then commit.
+- **Prek hooks**: Always run `prek install` before starting work on a new PR to ensure Git hooks are active.
 
 ## Runbooks
 
