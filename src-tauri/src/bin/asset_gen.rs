@@ -53,6 +53,9 @@ enum Command {
         /// Output directory for the banner (defaults to media/)
         #[arg(long)]
         output_dir: Option<PathBuf>,
+        /// Path to an icon/logo image to incorporate into the banner
+        #[arg(long)]
+        icon: Option<PathBuf>,
     },
 }
 
@@ -75,7 +78,8 @@ async fn main() -> Result<()> {
             title,
             suggestion,
             output_dir,
-        } => run_banner(title, suggestion, output_dir, client).await,
+            icon,
+        } => run_banner(title, suggestion, output_dir, icon, client).await,
     }
 }
 
@@ -153,6 +157,25 @@ async fn run_logo(
     save_png(&icon_dark_512, &target.join("icon-dark.png"))?;
     save_ico(&favicon_32, &target.join("favicon.ico"))?;
 
+    // Also update the Tauri app icon so the desktop app uses the generated logo
+    let tauri_icons_dir = workspace.join("src-tauri").join("icons");
+    if tauri_icons_dir.exists() {
+        let icon_1024 = resize(&icon_light_square, 1024, 1024, FilterType::Lanczos3);
+        save_png(&icon_1024, &tauri_icons_dir.join("icon.png"))?;
+        save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"))?;
+
+        // Generate .icns by saving the 1024x1024 PNG (Tauri converts at build time)
+        // For now, write the PNG — tauri build handles the actual icns conversion
+        let icns_png_path = tauri_icons_dir.join("icon.icns.png");
+        save_png(&icon_1024, &icns_png_path)?;
+        // Replace the .icns with the raw 1024x1024 PNG data; Tauri's bundler accepts this
+        let icns_path = tauri_icons_dir.join("icon.icns");
+        std::fs::copy(&icns_png_path, &icns_path).context("Failed to copy icon to icns")?;
+        std::fs::remove_file(&icns_png_path).ok();
+
+        info!("Tauri app icons updated in {}", tauri_icons_dir.display());
+    }
+
     info!("Logo assets saved to {}", target.display());
     Ok(())
 }
@@ -161,6 +184,7 @@ async fn run_banner(
     title: Option<String>,
     suggestion: Option<String>,
     output_dir: Option<PathBuf>,
+    icon: Option<PathBuf>,
     client: GeminiClient,
 ) -> Result<()> {
     let workspace = workspace_root()?;
@@ -175,19 +199,49 @@ async fn run_banner(
         .await
         .context("Failed to create banner output directory")?;
 
+    // Try to load an icon image: explicit --icon flag, or fall back to docs/public/icon-light.png
+    let icon_path = icon.or_else(|| {
+        let default = workspace.join("docs").join("public").join("icon-light.png");
+        default.exists().then_some(default)
+    });
+    let icon_image = match &icon_path {
+        Some(p) => {
+            info!("Using icon from {}", p.display());
+            Some(
+                image::open(p)
+                    .with_context(|| format!("Failed to load icon at {}", p.display()))?
+                    .to_rgba8(),
+            )
+        }
+        None => {
+            info!("No icon found, generating banner without logo reference");
+            None
+        }
+    };
+
     let banner_description = client
         .generate_banner_description(&title, suggestion.as_deref())
         .await
         .context("Failed to describe banner")?;
 
-    let full_prompt = format!(
-        "{banner_description}. Create a WIDE 16:9 horizontal image where the banner takes up 80% of the screen and the text '{title}' is centered at the top with excellent contrast. {BANNER_STYLE_PROMPT}",
-    );
+    let banner = if let Some(ref icon_img) = icon_image {
+        let full_prompt = format!(
+            "{banner_description}. Create a WIDE 16:9 horizontal image where the banner takes up 80% of the screen and the text '{title}' is centered at the top with excellent contrast. {BANNER_STYLE_PROMPT} IMPORTANT: Use the provided icon/logo as the main visual element in the banner — do NOT use the default Tauri crab icon. Incorporate this exact icon prominently in the composition.",
+        );
+        client
+            .generate_image_from_reference(IMAGE_MODEL, &full_prompt, icon_img)
+            .await
+            .context("Failed to generate banner with icon reference")?
+    } else {
+        let full_prompt = format!(
+            "{banner_description}. Create a WIDE 16:9 horizontal image where the banner takes up 80% of the screen and the text '{title}' is centered at the top with excellent contrast. {BANNER_STYLE_PROMPT}",
+        );
+        client
+            .generate_image(IMAGE_MODEL, &full_prompt)
+            .await
+            .context("Failed to generate banner")?
+    };
 
-    let banner = client
-        .generate_image(IMAGE_MODEL, &full_prompt)
-        .await
-        .context("Failed to generate banner")?;
     let banner_path = target.join("banner.png");
     banner
         .save(&banner_path)
