@@ -159,34 +159,42 @@ async fn run_logo(
 
     // Use `cargo tauri icon` to generate all platform icons (png, ico, icns)
     // from the source image. This handles the Apple ICNS binary format correctly.
-    let source_icon = target.join("icon-light.png");
+    // Save a 1024x1024 source so tauri icon has enough resolution for all sizes.
+    let source_icon = target.join("icon-source-1024.png");
+    let icon_1024 = resize(&icon_light_square, 1024, 1024, FilterType::Lanczos3);
+    save_png(&icon_1024, &source_icon)?;
+
     let tauri_icon_status = std::process::Command::new("cargo")
-        .args(["tauri", "icon", &source_icon.to_string_lossy()])
+        .args(["tauri", "icon"])
+        .arg(&source_icon)
         .current_dir(&workspace)
         .status();
-    match tauri_icon_status {
+
+    let needs_fallback = match tauri_icon_status {
         Ok(s) if s.success() => {
             info!("Tauri app icons generated via `cargo tauri icon`");
+            false
         }
         Ok(s) => {
             warn!("`cargo tauri icon` exited with {s}, falling back to manual icon copy");
-            let tauri_icons_dir = workspace.join("src-tauri").join("icons");
-            if tauri_icons_dir.exists() {
-                let icon_1024 = resize(&icon_light_square, 1024, 1024, FilterType::Lanczos3);
-                save_png(&icon_1024, &tauri_icons_dir.join("icon.png"))?;
-                save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"))?;
-            }
+            true
         }
         Err(e) => {
             warn!("Failed to run `cargo tauri icon`: {e}, falling back to manual icon copy");
-            let tauri_icons_dir = workspace.join("src-tauri").join("icons");
-            if tauri_icons_dir.exists() {
-                let icon_1024 = resize(&icon_light_square, 1024, 1024, FilterType::Lanczos3);
-                save_png(&icon_1024, &tauri_icons_dir.join("icon.png"))?;
-                save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"))?;
-            }
+            true
+        }
+    };
+
+    if needs_fallback {
+        let tauri_icons_dir = workspace.join("src-tauri").join("icons");
+        if tauri_icons_dir.exists() {
+            save_png(&icon_1024, &tauri_icons_dir.join("icon.png"))?;
+            save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"))?;
         }
     }
+
+    // Clean up the temporary 1024x1024 source
+    std::fs::remove_file(&source_icon).ok();
 
     info!("Logo assets saved to {}", target.display());
     Ok(())
