@@ -14,7 +14,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri_app_lib::{config, logging};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 const IMAGE_MODEL: &str = "gemini-3-pro-image-preview";
 const IMAGE_PROMPT_STYLE: &str = "Create a minimalist, modern horizontal wordmark logo (4:1 aspect) with an icon on the left and clear text on the right. Use dark tones, clean typography, and avoid photorealism. The background should be bright lime green (#00FF00) to act as a greenscreen, but keep the logo colors distinct and readable.";
@@ -53,6 +53,9 @@ enum Command {
         /// Output directory for the banner (defaults to media/)
         #[arg(long)]
         output_dir: Option<PathBuf>,
+        /// Path to an icon/logo image to incorporate into the banner
+        #[arg(long)]
+        icon: Option<PathBuf>,
     },
 }
 
@@ -75,7 +78,8 @@ async fn main() -> Result<()> {
             title,
             suggestion,
             output_dir,
-        } => run_banner(title, suggestion, output_dir, client).await,
+            icon,
+        } => run_banner(title, suggestion, output_dir, icon, client).await,
     }
 }
 
@@ -153,6 +157,45 @@ async fn run_logo(
     save_png(&icon_dark_512, &target.join("icon-dark.png"))?;
     save_ico(&favicon_32, &target.join("favicon.ico"))?;
 
+    // Use `cargo tauri icon` to generate all platform icons (png, ico, icns)
+    // from the source image. This handles the Apple ICNS binary format correctly.
+    // Save a 1024x1024 source so tauri icon has enough resolution for all sizes.
+    let source_icon = target.join("icon-source-1024.png");
+    let icon_1024 = resize(&icon_light_square, 1024, 1024, FilterType::Lanczos3);
+    save_png(&icon_1024, &source_icon)?;
+
+    let tauri_icon_status = std::process::Command::new("cargo")
+        .args(["tauri", "icon"])
+        .arg(&source_icon)
+        .current_dir(&workspace)
+        .status();
+
+    let needs_fallback = match tauri_icon_status {
+        Ok(s) if s.success() => {
+            info!("Tauri app icons generated via `cargo tauri icon`");
+            false
+        }
+        Ok(s) => {
+            warn!("`cargo tauri icon` exited with {s}, falling back to manual icon copy");
+            true
+        }
+        Err(e) => {
+            warn!("Failed to run `cargo tauri icon`: {e}, falling back to manual icon copy");
+            true
+        }
+    };
+
+    if needs_fallback {
+        let tauri_icons_dir = workspace.join("src-tauri").join("icons");
+        if tauri_icons_dir.exists() {
+            save_png(&icon_1024, &tauri_icons_dir.join("icon.png"))?;
+            save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"))?;
+        }
+    }
+
+    // Clean up the temporary 1024x1024 source
+    std::fs::remove_file(&source_icon).ok();
+
     info!("Logo assets saved to {}", target.display());
     Ok(())
 }
@@ -161,6 +204,7 @@ async fn run_banner(
     title: Option<String>,
     suggestion: Option<String>,
     output_dir: Option<PathBuf>,
+    icon: Option<PathBuf>,
     client: GeminiClient,
 ) -> Result<()> {
     let workspace = workspace_root()?;
@@ -175,19 +219,49 @@ async fn run_banner(
         .await
         .context("Failed to create banner output directory")?;
 
+    // Try to load an icon image: explicit --icon flag, or fall back to docs/public/icon-light.png
+    let icon_path = icon.or_else(|| {
+        let default = workspace.join("docs").join("public").join("icon-light.png");
+        default.exists().then_some(default)
+    });
+    let icon_image = match &icon_path {
+        Some(p) => {
+            info!("Using icon from {}", p.display());
+            Some(
+                image::open(p)
+                    .with_context(|| format!("Failed to load icon at {}", p.display()))?
+                    .to_rgba8(),
+            )
+        }
+        None => {
+            info!("No icon found, generating banner without logo reference");
+            None
+        }
+    };
+
     let banner_description = client
         .generate_banner_description(&title, suggestion.as_deref())
         .await
         .context("Failed to describe banner")?;
 
-    let full_prompt = format!(
-        "{banner_description}. Create a WIDE 16:9 horizontal image where the banner takes up 80% of the screen and the text '{title}' is centered at the top with excellent contrast. {BANNER_STYLE_PROMPT}",
-    );
+    let banner = if let Some(ref icon_img) = icon_image {
+        let full_prompt = format!(
+            "{banner_description}. Create a WIDE 16:9 horizontal image where the banner takes up 80% of the screen and the text '{title}' is centered at the top with excellent contrast. {BANNER_STYLE_PROMPT} IMPORTANT: Use the provided icon/logo as the main visual element in the banner — do NOT use the default Tauri crab icon. Incorporate this exact icon prominently in the composition.",
+        );
+        client
+            .generate_image_from_reference(IMAGE_MODEL, &full_prompt, icon_img)
+            .await
+            .context("Failed to generate banner with icon reference")?
+    } else {
+        let full_prompt = format!(
+            "{banner_description}. Create a WIDE 16:9 horizontal image where the banner takes up 80% of the screen and the text '{title}' is centered at the top with excellent contrast. {BANNER_STYLE_PROMPT}",
+        );
+        client
+            .generate_image(IMAGE_MODEL, &full_prompt)
+            .await
+            .context("Failed to generate banner")?
+    };
 
-    let banner = client
-        .generate_image(IMAGE_MODEL, &full_prompt)
-        .await
-        .context("Failed to generate banner")?;
     let banner_path = target.join("banner.png");
     banner
         .save(&banner_path)
