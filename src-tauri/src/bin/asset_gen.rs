@@ -14,7 +14,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri_app_lib::{config, logging};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 const IMAGE_MODEL: &str = "gemini-3-pro-image-preview";
 const IMAGE_PROMPT_STYLE: &str = "Create a minimalist, modern horizontal wordmark logo (4:1 aspect) with an icon on the left and clear text on the right. Use dark tones, clean typography, and avoid photorealism. The background should be bright lime green (#00FF00) to act as a greenscreen, but keep the logo colors distinct and readable.";
@@ -157,23 +157,35 @@ async fn run_logo(
     save_png(&icon_dark_512, &target.join("icon-dark.png"))?;
     save_ico(&favicon_32, &target.join("favicon.ico"))?;
 
-    // Also update the Tauri app icon so the desktop app uses the generated logo
-    let tauri_icons_dir = workspace.join("src-tauri").join("icons");
-    if tauri_icons_dir.exists() {
-        let icon_1024 = resize(&icon_light_square, 1024, 1024, FilterType::Lanczos3);
-        save_png(&icon_1024, &tauri_icons_dir.join("icon.png"))?;
-        save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"))?;
-
-        // Generate .icns by saving the 1024x1024 PNG (Tauri converts at build time)
-        // For now, write the PNG — tauri build handles the actual icns conversion
-        let icns_png_path = tauri_icons_dir.join("icon.icns.png");
-        save_png(&icon_1024, &icns_png_path)?;
-        // Replace the .icns with the raw 1024x1024 PNG data; Tauri's bundler accepts this
-        let icns_path = tauri_icons_dir.join("icon.icns");
-        std::fs::copy(&icns_png_path, &icns_path).context("Failed to copy icon to icns")?;
-        std::fs::remove_file(&icns_png_path).ok();
-
-        info!("Tauri app icons updated in {}", tauri_icons_dir.display());
+    // Use `cargo tauri icon` to generate all platform icons (png, ico, icns)
+    // from the source image. This handles the Apple ICNS binary format correctly.
+    let source_icon = target.join("icon-light.png");
+    let tauri_icon_status = std::process::Command::new("cargo")
+        .args(["tauri", "icon", &source_icon.to_string_lossy()])
+        .current_dir(&workspace)
+        .status();
+    match tauri_icon_status {
+        Ok(s) if s.success() => {
+            info!("Tauri app icons generated via `cargo tauri icon`");
+        }
+        Ok(s) => {
+            warn!("`cargo tauri icon` exited with {s}, falling back to manual icon copy");
+            let tauri_icons_dir = workspace.join("src-tauri").join("icons");
+            if tauri_icons_dir.exists() {
+                let icon_1024 = resize(&icon_light_square, 1024, 1024, FilterType::Lanczos3);
+                save_png(&icon_1024, &tauri_icons_dir.join("icon.png"))?;
+                save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"))?;
+            }
+        }
+        Err(e) => {
+            warn!("Failed to run `cargo tauri icon`: {e}, falling back to manual icon copy");
+            let tauri_icons_dir = workspace.join("src-tauri").join("icons");
+            if tauri_icons_dir.exists() {
+                let icon_1024 = resize(&icon_light_square, 1024, 1024, FilterType::Lanczos3);
+                save_png(&icon_1024, &tauri_icons_dir.join("icon.png"))?;
+                save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"))?;
+            }
+        }
     }
 
     info!("Logo assets saved to {}", target.display());
