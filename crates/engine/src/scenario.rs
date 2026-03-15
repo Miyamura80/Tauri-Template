@@ -439,7 +439,8 @@ steps:
         assert_eq!(result.overall_status, Status::Fail);
         assert_eq!(result.step_results.len(), 3);
         assert_eq!(result.step_results[0].status, Status::Pass);
-        // step 1 ran successfully as a command but did not meet the expectation
+        // step 1's CommandResult.status is Pass (ping succeeded) but its expectation
+        // was "fail" — the only externally visible evidence is overall_status above.
         assert_eq!(result.step_results[1].status, Status::Pass);
         // step 1 failed expectation but we continued to step 2
         assert_eq!(result.step_results[2].status, Status::Pass);
