@@ -246,20 +246,26 @@ async fn cmd_run_scenario(
             |idx, total, label, can_go_back| {
                 use engine::scenario::StepChoice;
 
-                println!("\n--- Step {}/{}: {} ---", idx + 1, total, label);
+                eprintln!("\n--- Step {}/{}: {} ---", idx + 1, total, label);
 
                 let mut choices = vec!["Run", "Skip"];
                 if can_go_back {
                     choices.push("\u{2190} Go back");
                 }
 
-                let selection = dialoguer::Select::new()
+                let selection = match dialoguer::Select::new()
                     .with_prompt("Run this step?")
                     .items(&choices)
                     .default(0)
                     .interact_opt()
-                    .ok()
-                    .flatten()?;
+                {
+                    Ok(Some(s)) => s,
+                    Ok(None) => return None, // user pressed Esc
+                    Err(e) => {
+                        eprintln!("error: interactive prompt failed: {e}");
+                        return None;
+                    }
+                };
 
                 Some(match choices[selection] {
                     "Run" => StepChoice::Run,
@@ -270,16 +276,22 @@ async fn cmd_run_scenario(
             |idx, total, label| {
                 use engine::scenario::FailureChoice;
 
-                println!("\n--- Step {}/{}: {} FAILED ---", idx + 1, total, label);
+                eprintln!("\n--- Step {}/{}: {} FAILED ---", idx + 1, total, label);
 
                 let choices = ["Continue to next step", "Abort scenario"];
-                let selection = dialoguer::Select::new()
+                let selection = match dialoguer::Select::new()
                     .with_prompt("Step failed. What would you like to do?")
                     .items(choices)
                     .default(0)
                     .interact_opt()
-                    .ok()
-                    .flatten()?;
+                {
+                    Ok(Some(s)) => s,
+                    Ok(None) => return None,
+                    Err(e) => {
+                        eprintln!("error: interactive prompt failed: {e}");
+                        return None;
+                    }
+                };
 
                 Some(match selection {
                     0 => FailureChoice::Continue,
