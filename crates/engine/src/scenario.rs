@@ -19,6 +19,13 @@ pub enum StepChoice {
     GoBack,
 }
 
+/// User choice after a step failure.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FailureChoice {
+    Continue,
+    Abort,
+}
+
 /// Outcome stored per step so re-running overwrites the previous result.
 #[derive(Debug, Clone)]
 pub struct StepOutcome {
@@ -83,45 +90,22 @@ async fn execute_step(
     }
 }
 
-/// Execute a scenario non-interactively (forward-only, original behaviour).
+/// Execute a scenario non-interactively (forward-only).
 pub async fn run_scenario(
     scenario: &Scenario,
     ctx: &AppContext,
     registry: &CommandRegistry,
 ) -> ScenarioResult {
-    let total = scenario.steps.len();
-    let mut results: HashMap<usize, StepOutcome> = HashMap::new();
+    let mut step_results = Vec::new();
     let mut overall = Status::Pass;
 
-    let mut idx = 0;
-    while idx < total {
-        let step = &scenario.steps[idx];
-        let label = step_label(step);
-        let (result, expectation_met) = execute_step(step, idx, ctx, registry).await;
-
+    for (i, step) in scenario.steps.iter().enumerate() {
+        let (result, expectation_met) = execute_step(step, i, ctx, registry).await;
         if !expectation_met {
             overall = Status::Fail;
         }
-
-        results.insert(
-            idx,
-            StepOutcome {
-                label,
-                status: if expectation_met {
-                    StepStatus::Completed
-                } else {
-                    StepStatus::Failed
-                },
-                result,
-            },
-        );
-        idx += 1;
+        step_results.push(result);
     }
-
-    // Collect results in step order
-    let step_results: Vec<CommandResult> = (0..total)
-        .filter_map(|i| results.remove(&i).map(|o| o.result))
-        .collect();
 
     ScenarioResult {
         name: scenario.name.clone(),
@@ -132,17 +116,23 @@ pub async fn run_scenario(
 
 /// Execute a scenario interactively with go-back navigation.
 ///
-/// `prompt_fn` is called at each step to ask the user whether to run, skip, or
-/// go back. This keeps the engine crate free of direct terminal I/O
-/// dependencies — the CLI crate provides the real prompter.
-pub async fn run_scenario_interactive<F>(
+/// - `prompt_fn` is called at each step to ask the user whether to run, skip,
+///   or go back. Returns `None` to abort the scenario.
+/// - `failure_fn` is called when a step fails, asking the user whether to
+///   continue or abort. Returns `None` to abort.
+///
+/// This keeps the engine crate free of direct terminal I/O dependencies —
+/// the CLI crate provides the real prompters.
+pub async fn run_scenario_interactive<F, G>(
     scenario: &Scenario,
     ctx: &AppContext,
     registry: &CommandRegistry,
     mut prompt_fn: F,
+    mut failure_fn: G,
 ) -> ScenarioResult
 where
     F: FnMut(usize, usize, &str, bool) -> Option<StepChoice>,
+    G: FnMut(usize, usize, &str) -> Option<FailureChoice>,
 {
     let total = scenario.steps.len();
     let mut results: HashMap<usize, StepOutcome> = HashMap::new();
@@ -182,30 +172,19 @@ where
         let (result, expectation_met) = execute_step(step, idx, ctx, registry).await;
 
         if !expectation_met {
-            // Step failed — ask if user wants to continue
-            let cont = prompt_fn(idx, total, &format!("{} (failed, continue?)", label), false);
-            let status = if cont == Some(StepChoice::Run) {
-                StepStatus::Failed
-            } else {
-                // User chose to abort or skip after failure
-                results.insert(
-                    idx,
-                    StepOutcome {
-                        label,
-                        status: StepStatus::Failed,
-                        result,
-                    },
-                );
-                break;
-            };
+            // Step failed — ask if user wants to continue or abort
+            let decision = failure_fn(idx, total, &label);
             results.insert(
                 idx,
                 StepOutcome {
                     label,
-                    status,
+                    status: StepStatus::Failed,
                     result,
                 },
             );
+            if decision != Some(FailureChoice::Continue) {
+                break;
+            }
         } else {
             results.insert(
                 idx,
@@ -307,7 +286,6 @@ steps:
         let ctx = AppContext::default_headless();
         let reg = CommandRegistry::new();
 
-        // Track how many times prompt_fn is called and what idx it sees
         let call_count = std::cell::Cell::new(0usize);
         let result = run_scenario_interactive(
             &scenario,
@@ -320,31 +298,31 @@ steps:
                     0 => {
                         assert_eq!(idx, 0);
                         Some(StepChoice::Run)
-                    } // run step 0
+                    }
                     1 => {
                         assert_eq!(idx, 1);
                         Some(StepChoice::GoBack)
-                    } // go back from step 1
+                    }
                     2 => {
                         assert_eq!(idx, 0);
                         Some(StepChoice::Run)
-                    } // re-run step 0
+                    }
                     3 => {
                         assert_eq!(idx, 1);
                         Some(StepChoice::Run)
-                    } // run step 1
+                    }
                     4 => {
                         assert_eq!(idx, 2);
                         Some(StepChoice::Skip)
-                    } // skip step 2
+                    }
                     _ => panic!("unexpected call {}", n),
                 }
             },
+            |_idx, _total, _label| panic!("no failures expected"),
         )
         .await;
 
         assert_eq!(result.overall_status, Status::Pass);
-        // 3 steps: step 0 re-run (pass), step 1 (pass), step 2 (skip)
         assert_eq!(result.step_results.len(), 3);
         assert_eq!(result.step_results[0].status, Status::Pass);
         assert_eq!(result.step_results[1].status, Status::Pass);
@@ -371,6 +349,7 @@ steps:
             &ctx,
             &reg,
             |_idx, _total, _label, _can_go_back| Some(StepChoice::Skip),
+            |_idx, _total, _label| panic!("no failures expected"),
         )
         .await;
 
@@ -404,13 +383,85 @@ steps:
                     Some(StepChoice::Run)
                 } else {
                     None
-                } // abort at step 1
+                }
             },
+            |_idx, _total, _label| panic!("no failures expected"),
         )
         .await;
 
         assert_eq!(result.overall_status, Status::Pass);
-        // Only step 0 completed, step 1 was never reached
+        assert_eq!(result.step_results.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_interactive_failure_continue() {
+        // Step 0 passes, step 1 fails (expect "fail" but ping returns "pass"),
+        // user continues, step 2 passes
+        let yaml = r#"
+steps:
+  - call: "ping"
+    args: {}
+    expect_status: "pass"
+  - call: "ping"
+    args: {}
+    expect_status: "fail"
+  - call: "ping"
+    args: {}
+    expect_status: "pass"
+"#;
+        let scenario = load_scenario(yaml).unwrap();
+        let ctx = AppContext::default_headless();
+        let reg = CommandRegistry::new();
+
+        let result = run_scenario_interactive(
+            &scenario,
+            &ctx,
+            &reg,
+            |_idx, _total, _label, _can_go_back| Some(StepChoice::Run),
+            |idx, _total, _label| {
+                assert_eq!(idx, 1); // only step 1 should fail
+                Some(FailureChoice::Continue)
+            },
+        )
+        .await;
+
+        assert_eq!(result.overall_status, Status::Fail);
+        assert_eq!(result.step_results.len(), 3);
+        assert_eq!(result.step_results[0].status, Status::Pass);
+        // step 1 failed but we continued
+        assert_eq!(result.step_results[2].status, Status::Pass);
+    }
+
+    #[tokio::test]
+    async fn test_interactive_failure_abort() {
+        // Step 0 fails (expect "fail" but ping returns "pass"), user aborts
+        let yaml = r#"
+steps:
+  - call: "ping"
+    args: {}
+    expect_status: "fail"
+  - call: "ping"
+    args: {}
+    expect_status: "pass"
+"#;
+        let scenario = load_scenario(yaml).unwrap();
+        let ctx = AppContext::default_headless();
+        let reg = CommandRegistry::new();
+
+        let result = run_scenario_interactive(
+            &scenario,
+            &ctx,
+            &reg,
+            |_idx, _total, _label, _can_go_back| Some(StepChoice::Run),
+            |idx, _total, _label| {
+                assert_eq!(idx, 0);
+                Some(FailureChoice::Abort)
+            },
+        )
+        .await;
+
+        assert_eq!(result.overall_status, Status::Fail);
+        // Only step 0 recorded, step 1 never reached
         assert_eq!(result.step_results.len(), 1);
     }
 }

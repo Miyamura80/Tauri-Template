@@ -267,6 +267,25 @@ async fn cmd_run_scenario(
                     _ => StepChoice::GoBack,
                 })
             },
+            |idx, total, label| {
+                use engine::scenario::FailureChoice;
+
+                println!("\n--- Step {}/{}: {} FAILED ---", idx + 1, total, label);
+
+                let choices = ["Continue to next step", "Abort scenario"];
+                let selection = dialoguer::Select::new()
+                    .with_prompt("Step failed. What would you like to do?")
+                    .items(choices)
+                    .default(0)
+                    .interact_opt()
+                    .ok()
+                    .flatten()?;
+
+                Some(match selection {
+                    0 => FailureChoice::Continue,
+                    _ => FailureChoice::Abort,
+                })
+            },
         )
         .await
     } else {
