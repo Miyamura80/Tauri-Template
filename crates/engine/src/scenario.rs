@@ -209,7 +209,7 @@ where
     let overall = if results.values().any(|o| o.status == StepStatus::Failed) {
         Status::Fail
     } else if results.len() < total
-        || results.values().all(|o| o.status == StepStatus::Skipped)
+        || (total > 0 && results.values().all(|o| o.status == StepStatus::Skipped))
     {
         // User aborted before all steps were reached, or skipped every step
         Status::Skip
