@@ -208,6 +208,9 @@ where
     // Derive overall status from results
     let overall = if results.values().any(|o| o.status == StepStatus::Failed) {
         Status::Fail
+    } else if results.len() < total {
+        // User aborted before all steps were reached
+        Status::Skip
     } else {
         Status::Pass
     };
@@ -395,7 +398,7 @@ steps:
         )
         .await;
 
-        assert_eq!(result.overall_status, Status::Pass);
+        assert_eq!(result.overall_status, Status::Skip);
         assert_eq!(result.step_results.len(), 1);
     }
 
