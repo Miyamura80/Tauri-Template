@@ -246,56 +246,62 @@ async fn cmd_run_scenario(
             |idx, total, label, can_go_back| {
                 use engine::scenario::StepChoice;
 
-                eprintln!("\n--- Step {}/{}: {} ---", idx + 1, total, label);
+                // block_in_place tells Tokio this closure will block on TTY I/O,
+                // so it can move async tasks off this worker thread.
+                tokio::task::block_in_place(|| {
+                    eprintln!("\n--- Step {}/{}: {} ---", idx + 1, total, label);
 
-                let mut choices = vec!["Run", "Skip"];
-                if can_go_back {
-                    choices.push("\u{2190} Go back");
-                }
-
-                let selection = match dialoguer::Select::new()
-                    .with_prompt("Run this step?")
-                    .items(&choices)
-                    .default(0)
-                    .interact_opt()
-                {
-                    Ok(Some(s)) => s,
-                    Ok(None) => return None, // user pressed Esc
-                    Err(e) => {
-                        eprintln!("error: interactive prompt failed: {e}");
-                        return None;
+                    let mut choices = vec!["Run", "Skip"];
+                    if can_go_back {
+                        choices.push("\u{2190} Go back");
                     }
-                };
 
-                Some(match choices[selection] {
-                    "Run" => StepChoice::Run,
-                    "Skip" => StepChoice::Skip,
-                    _ => StepChoice::GoBack,
+                    let selection = match dialoguer::Select::new()
+                        .with_prompt("Run this step?")
+                        .items(&choices)
+                        .default(0)
+                        .interact_opt()
+                    {
+                        Ok(Some(s)) => s,
+                        Ok(None) => return None,
+                        Err(e) => {
+                            eprintln!("error: interactive prompt failed: {e}");
+                            return None;
+                        }
+                    };
+
+                    Some(match choices[selection] {
+                        "Run" => StepChoice::Run,
+                        "Skip" => StepChoice::Skip,
+                        _ => StepChoice::GoBack,
+                    })
                 })
             },
             |idx, total, label| {
                 use engine::scenario::FailureChoice;
 
-                eprintln!("\n--- Step {}/{}: {} FAILED ---", idx + 1, total, label);
+                tokio::task::block_in_place(|| {
+                    eprintln!("\n--- Step {}/{}: {} FAILED ---", idx + 1, total, label);
 
-                let choices = ["Continue to next step", "Abort scenario"];
-                let selection = match dialoguer::Select::new()
-                    .with_prompt("Step failed. What would you like to do?")
-                    .items(choices)
-                    .default(0)
-                    .interact_opt()
-                {
-                    Ok(Some(s)) => s,
-                    Ok(None) => return None,
-                    Err(e) => {
-                        eprintln!("error: interactive prompt failed: {e}");
-                        return None;
-                    }
-                };
+                    let choices = ["Continue to next step", "Abort scenario"];
+                    let selection = match dialoguer::Select::new()
+                        .with_prompt("Step failed. What would you like to do?")
+                        .items(choices)
+                        .default(0)
+                        .interact_opt()
+                    {
+                        Ok(Some(s)) => s,
+                        Ok(None) => return None,
+                        Err(e) => {
+                            eprintln!("error: interactive prompt failed: {e}");
+                            return None;
+                        }
+                    };
 
-                Some(match choices[selection] {
-                    "Continue to next step" => FailureChoice::Continue,
-                    _ => FailureChoice::Abort,
+                    Some(match choices[selection] {
+                        "Continue to next step" => FailureChoice::Continue,
+                        _ => FailureChoice::Abort,
+                    })
                 })
             },
         )
