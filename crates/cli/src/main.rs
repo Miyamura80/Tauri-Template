@@ -239,30 +239,36 @@ async fn cmd_run_scenario(
     };
 
     let scenario_result = if interactive {
-        engine::scenario::run_scenario_interactive(&scenario, ctx, registry, |idx, total, label, can_go_back| {
-            use engine::scenario::StepChoice;
+        engine::scenario::run_scenario_interactive(
+            &scenario,
+            ctx,
+            registry,
+            |idx, total, label, can_go_back| {
+                use engine::scenario::StepChoice;
 
-            println!("\n--- Step {}/{}: {} ---", idx + 1, total, label);
+                println!("\n--- Step {}/{}: {} ---", idx + 1, total, label);
 
-            let mut choices = vec!["Run", "Skip"];
-            if can_go_back {
-                choices.push("\u{2190} Go back");
-            }
+                let mut choices = vec!["Run", "Skip"];
+                if can_go_back {
+                    choices.push("\u{2190} Go back");
+                }
 
-            let selection = dialoguer::Select::new()
-                .with_prompt("Run this step?")
-                .items(&choices)
-                .default(0)
-                .interact_opt()
-                .ok()
-                .flatten()?;
+                let selection = dialoguer::Select::new()
+                    .with_prompt("Run this step?")
+                    .items(&choices)
+                    .default(0)
+                    .interact_opt()
+                    .ok()
+                    .flatten()?;
 
-            Some(match choices[selection] {
-                "Run" => StepChoice::Run,
-                "Skip" => StepChoice::Skip,
-                _ => StepChoice::GoBack,
-            })
-        }).await
+                Some(match choices[selection] {
+                    "Run" => StepChoice::Run,
+                    "Skip" => StepChoice::Skip,
+                    _ => StepChoice::GoBack,
+                })
+            },
+        )
+        .await
     } else {
         engine::scenario::run_scenario(&scenario, ctx, registry).await
     };

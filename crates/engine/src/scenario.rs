@@ -160,9 +160,7 @@ where
 
         match choice {
             StepChoice::GoBack => {
-                if idx > 0 {
-                    idx -= 1;
-                }
+                idx = idx.saturating_sub(1);
                 continue;
             }
             StepChoice::Skip => {
@@ -241,40 +239,6 @@ where
     }
 }
 
-/// Print a summary of completed/skipped steps.
-pub fn print_summary(results: &HashMap<usize, StepOutcome>) {
-    let completed: Vec<&str> = results
-        .values()
-        .filter(|o| o.status == StepStatus::Completed)
-        .map(|o| o.label.as_str())
-        .collect();
-    let skipped: Vec<String> = results
-        .values()
-        .filter(|o| o.status != StepStatus::Completed)
-        .map(|o| {
-            if o.status == StepStatus::Failed {
-                format!("{} (failed)", o.label)
-            } else {
-                o.label.clone()
-            }
-        })
-        .collect();
-
-    println!("\n--- Summary ---");
-    if !completed.is_empty() {
-        println!("  Completed:");
-        for name in &completed {
-            println!("    [PASS] {}", name);
-        }
-    }
-    if !skipped.is_empty() {
-        println!("  Skipped:");
-        for name in &skipped {
-            println!("    [SKIP] {}", name);
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -345,18 +309,39 @@ steps:
 
         // Track how many times prompt_fn is called and what idx it sees
         let call_count = std::cell::Cell::new(0usize);
-        let result = run_scenario_interactive(&scenario, &ctx, &reg, |idx, _total, _label, _can_go_back| {
-            let n = call_count.get();
-            call_count.set(n + 1);
-            match n {
-                0 => { assert_eq!(idx, 0); Some(StepChoice::Run) }   // run step 0
-                1 => { assert_eq!(idx, 1); Some(StepChoice::GoBack) } // go back from step 1
-                2 => { assert_eq!(idx, 0); Some(StepChoice::Run) }   // re-run step 0
-                3 => { assert_eq!(idx, 1); Some(StepChoice::Run) }   // run step 1
-                4 => { assert_eq!(idx, 2); Some(StepChoice::Skip) }  // skip step 2
-                _ => panic!("unexpected call {}", n),
-            }
-        }).await;
+        let result = run_scenario_interactive(
+            &scenario,
+            &ctx,
+            &reg,
+            |idx, _total, _label, _can_go_back| {
+                let n = call_count.get();
+                call_count.set(n + 1);
+                match n {
+                    0 => {
+                        assert_eq!(idx, 0);
+                        Some(StepChoice::Run)
+                    } // run step 0
+                    1 => {
+                        assert_eq!(idx, 1);
+                        Some(StepChoice::GoBack)
+                    } // go back from step 1
+                    2 => {
+                        assert_eq!(idx, 0);
+                        Some(StepChoice::Run)
+                    } // re-run step 0
+                    3 => {
+                        assert_eq!(idx, 1);
+                        Some(StepChoice::Run)
+                    } // run step 1
+                    4 => {
+                        assert_eq!(idx, 2);
+                        Some(StepChoice::Skip)
+                    } // skip step 2
+                    _ => panic!("unexpected call {}", n),
+                }
+            },
+        )
+        .await;
 
         assert_eq!(result.overall_status, Status::Pass);
         // 3 steps: step 0 re-run (pass), step 1 (pass), step 2 (skip)
@@ -381,9 +366,13 @@ steps:
         let ctx = AppContext::default_headless();
         let reg = CommandRegistry::new();
 
-        let result = run_scenario_interactive(&scenario, &ctx, &reg, |_idx, _total, _label, _can_go_back| {
-            Some(StepChoice::Skip)
-        }).await;
+        let result = run_scenario_interactive(
+            &scenario,
+            &ctx,
+            &reg,
+            |_idx, _total, _label, _can_go_back| Some(StepChoice::Skip),
+        )
+        .await;
 
         assert_eq!(result.overall_status, Status::Pass);
         assert_eq!(result.step_results.len(), 2);
@@ -406,9 +395,19 @@ steps:
         let ctx = AppContext::default_headless();
         let reg = CommandRegistry::new();
 
-        let result = run_scenario_interactive(&scenario, &ctx, &reg, |idx, _total, _label, _can_go_back| {
-            if idx == 0 { Some(StepChoice::Run) } else { None } // abort at step 1
-        }).await;
+        let result = run_scenario_interactive(
+            &scenario,
+            &ctx,
+            &reg,
+            |idx, _total, _label, _can_go_back| {
+                if idx == 0 {
+                    Some(StepChoice::Run)
+                } else {
+                    None
+                } // abort at step 1
+            },
+        )
+        .await;
 
         assert_eq!(result.overall_status, Status::Pass);
         // Only step 0 completed, step 1 was never reached
