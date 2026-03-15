@@ -293,8 +293,8 @@ async fn cmd_run_scenario(
                     }
                 };
 
-                Some(match selection {
-                    0 => FailureChoice::Continue,
+                Some(match choices[selection] {
+                    "Continue to next step" => FailureChoice::Continue,
                     _ => FailureChoice::Abort,
                 })
             },
