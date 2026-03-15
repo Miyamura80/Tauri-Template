@@ -150,9 +150,9 @@ where
 
         match choice {
             StepChoice::GoBack => {
-                // Intentionally not saturating_sub — if idx == 0 we must
-                // no-op (not decrement) to avoid an infinite loop when a
-                // caller ignores the can_go_back hint.
+                // Use an explicit guard rather than saturating_sub so the
+                // intent — stay at step 0 when can_go_back is false — is
+                // immediately visible without reading clippy docs.
                 #[allow(clippy::implicit_saturating_sub)]
                 if idx > 0 {
                     idx -= 1;
