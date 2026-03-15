@@ -155,6 +155,12 @@ where
                 // immediately visible without reading clippy docs.
                 #[allow(clippy::implicit_saturating_sub)]
                 if idx > 0 {
+                    // Invalidate all steps at or after the new position so
+                    // stale results from the previous forward pass cannot
+                    // masquerade as a completed run if the user later aborts.
+                    for stale in idx..total {
+                        results.remove(&stale);
+                    }
                     idx -= 1;
                 }
                 continue;
@@ -477,5 +483,68 @@ steps:
         assert_eq!(result.overall_status, Status::Fail);
         // Only step 0 recorded, step 1 never reached
         assert_eq!(result.step_results.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_interactive_go_back_invalidates_stale_results() {
+        // Run step 0, skip step 1, go back from step 2, go back from step 1,
+        // then abort. The go-back should invalidate the stale Skip for step 1,
+        // so the result only contains step 0 and overall is Skip (not Pass).
+        let yaml = r#"
+steps:
+  - call: "ping"
+    args: {}
+    expect_status: "pass"
+  - call: "ping"
+    args: {}
+    expect_status: "pass"
+  - call: "ping"
+    args: {}
+    expect_status: "pass"
+"#;
+        let scenario = load_scenario(yaml).unwrap();
+        let ctx = AppContext::default_headless();
+        let reg = CommandRegistry::new();
+
+        let call_count = std::cell::Cell::new(0usize);
+        let result = run_scenario_interactive(
+            &scenario,
+            &ctx,
+            &reg,
+            |idx, _total, _label, _can_go_back| {
+                let n = call_count.get();
+                call_count.set(n + 1);
+                match n {
+                    0 => {
+                        assert_eq!(idx, 0);
+                        Some(StepChoice::Run)
+                    } // run step 0
+                    1 => {
+                        assert_eq!(idx, 1);
+                        Some(StepChoice::Skip)
+                    } // skip step 1
+                    2 => {
+                        assert_eq!(idx, 2);
+                        Some(StepChoice::GoBack)
+                    } // go back to step 1
+                    3 => {
+                        assert_eq!(idx, 1);
+                        Some(StepChoice::GoBack)
+                    } // go back to step 0
+                    4 => {
+                        assert_eq!(idx, 0);
+                        None
+                    } // abort
+                    _ => panic!("unexpected call {}", n),
+                }
+            },
+            |_idx, _total, _label| panic!("no failures expected"),
+        )
+        .await;
+
+        // Go-back invalidated the stale Skip for step 1, so only step 0 remains.
+        assert_eq!(result.overall_status, Status::Skip);
+        assert_eq!(result.step_results.len(), 1);
+        assert_eq!(result.step_results[0].status, Status::Pass);
     }
 }
