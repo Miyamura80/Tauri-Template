@@ -150,7 +150,13 @@ where
 
         match choice {
             StepChoice::GoBack => {
-                idx = idx.saturating_sub(1);
+                // Intentionally not saturating_sub — if idx == 0 we must
+                // no-op (not decrement) to avoid an infinite loop when a
+                // caller ignores the can_go_back hint.
+                #[allow(clippy::implicit_saturating_sub)]
+                if idx > 0 {
+                    idx -= 1;
+                }
                 continue;
             }
             StepChoice::Skip => {
