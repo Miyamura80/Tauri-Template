@@ -77,6 +77,9 @@ enum Commands {
         /// Output as JSON.
         #[arg(long)]
         json: bool,
+        /// Run interactively with go-back navigation.
+        #[arg(long)]
+        interactive: bool,
     },
 
     /// Start daemon mode over a Unix socket.
@@ -133,7 +136,8 @@ async fn main() {
             file,
             artifacts,
             json,
-        } => cmd_run_scenario(&file, json, artifacts, &ctx, &registry).await,
+            interactive,
+        } => cmd_run_scenario(&file, json, interactive, artifacts, &ctx, &registry).await,
         Commands::Serve { socket } => serve::run_daemon(socket, ctx, registry).await,
         Commands::Emit {
             event,
@@ -197,6 +201,7 @@ async fn cmd_probe(target: &str, json: bool, artifacts: Option<PathBuf>, ctx: &A
 async fn cmd_run_scenario(
     file: &PathBuf,
     json: bool,
+    interactive: bool,
     artifacts: Option<PathBuf>,
     ctx: &AppContext,
     registry: &CommandRegistry,
@@ -233,7 +238,34 @@ async fn cmd_run_scenario(
         }
     };
 
-    let scenario_result = engine::scenario::run_scenario(&scenario, ctx, registry).await;
+    let scenario_result = if interactive {
+        engine::scenario::run_scenario_interactive(&scenario, ctx, registry, |idx, total, label, can_go_back| {
+            use engine::scenario::StepChoice;
+
+            println!("\n--- Step {}/{}: {} ---", idx + 1, total, label);
+
+            let mut choices = vec!["Run", "Skip"];
+            if can_go_back {
+                choices.push("\u{2190} Go back");
+            }
+
+            let selection = dialoguer::Select::new()
+                .with_prompt("Run this step?")
+                .items(&choices)
+                .default(0)
+                .interact_opt()
+                .ok()
+                .flatten()?;
+
+            Some(match choices[selection] {
+                "Run" => StepChoice::Run,
+                "Skip" => StepChoice::Skip,
+                _ => StepChoice::GoBack,
+            })
+        }).await
+    } else {
+        engine::scenario::run_scenario(&scenario, ctx, registry).await
+    };
 
     if json {
         let j = serde_json::to_string_pretty(&scenario_result).unwrap_or_default();
