@@ -289,10 +289,9 @@ steps:
         // Simulate: run step 0, go back at step 1, run step 0 again, run step 1, skip step 2
         // Use write_file for step 0 so we can verify it actually executed twice
         // by checking the file exists (proves re-execution, not caching).
-        let tmp = std::env::temp_dir().join("engine_test_go_back_exec.txt");
+        let tmp =
+            std::env::temp_dir().join(format!("engine_test_go_back_{}.txt", uuid::Uuid::new_v4()));
         let tmp_str = tmp.to_str().unwrap().to_string();
-        // Clean up from any prior run
-        let _ = std::fs::remove_file(&tmp);
 
         let yaml = format!(
             r#"
