@@ -285,21 +285,33 @@ steps:
 
     #[tokio::test]
     async fn test_interactive_go_back() {
-        // 3-step scenario: ping, ping, ping
+        // 3-step scenario: write_file (step 0), ping, ping
         // Simulate: run step 0, go back at step 1, run step 0 again, run step 1, skip step 2
-        let yaml = r#"
+        // Use write_file for step 0 so we can verify it actually executed twice
+        // by checking the file exists (proves re-execution, not caching).
+        let tmp = std::env::temp_dir().join("engine_test_go_back_exec.txt");
+        let tmp_str = tmp.to_str().unwrap().to_string();
+        // Clean up from any prior run
+        let _ = std::fs::remove_file(&tmp);
+
+        let yaml = format!(
+            r#"
 steps:
-  - call: "ping"
-    args: {}
+  - call: "write_file"
+    args:
+      path: "{}"
+      content: "x"
     expect_status: "pass"
   - call: "ping"
-    args: {}
+    args: {{}}
     expect_status: "pass"
   - call: "ping"
-    args: {}
+    args: {{}}
     expect_status: "pass"
-"#;
-        let scenario = load_scenario(yaml).unwrap();
+"#,
+            tmp_str
+        );
+        let scenario = load_scenario(&yaml).unwrap();
         let ctx = AppContext::default_headless();
         let reg = CommandRegistry::new();
 
@@ -318,6 +330,9 @@ steps:
                     }
                     1 => {
                         assert_eq!(idx, 1);
+                        // Delete the file before going back, so re-execution
+                        // of step 0 must recreate it.
+                        std::fs::remove_file(&tmp).expect("file should exist after first run");
                         Some(StepChoice::GoBack)
                     }
                     2 => {
@@ -344,6 +359,10 @@ steps:
         assert_eq!(result.step_results[0].status, Status::Pass);
         assert_eq!(result.step_results[1].status, Status::Pass);
         assert_eq!(result.step_results[2].status, Status::Skip);
+
+        // Verify step 0 actually re-executed (file recreated after deletion)
+        assert!(tmp.exists(), "write_file should have been called twice");
+        let _ = std::fs::remove_file(&tmp);
     }
 
     #[tokio::test]
