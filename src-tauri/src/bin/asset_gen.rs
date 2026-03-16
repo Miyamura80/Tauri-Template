@@ -186,16 +186,22 @@ async fn run_logo(
         }
     };
 
-    if needs_fallback {
+    let fallback_result = if needs_fallback {
         let tauri_icons_dir = workspace.join("src-tauri").join("icons");
         if tauri_icons_dir.exists() {
-            save_png(&icon_1024, &tauri_icons_dir.join("icon.png"))?;
-            save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"))?;
+            let r1 = save_png(&icon_1024, &tauri_icons_dir.join("icon.png"));
+            let r2 = save_ico(&favicon_32, &tauri_icons_dir.join("icon.ico"));
+            r1.and(r2)
+        } else {
+            Ok(())
         }
-    }
+    } else {
+        Ok(())
+    };
 
-    // Clean up the temporary 1024x1024 source
+    // Clean up the temporary 1024x1024 source before propagating any error
     std::fs::remove_file(&source_icon).ok();
+    fallback_result?;
 
     info!("Logo assets saved to {}", target.display());
     Ok(())
