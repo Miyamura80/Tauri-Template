@@ -52,6 +52,7 @@ pub enum ErrorCode {
     Timeout,
     ExternalInterference,
     InternalError,
+    UserSkipped,
 }
 
 impl std::fmt::Display for ErrorCode {
@@ -147,6 +148,18 @@ fn default_timeout_ms() -> u64 {
 // Scenario result
 // ---------------------------------------------------------------------------
 
+/// Result of a scenario run.
+///
+/// When using `run_scenario_interactive`, `step_results` may contain fewer
+/// entries than the declared scenario steps if the user aborts mid-run or
+/// a step fails and the user chooses not to continue. `overall_status` values:
+/// - `Pass` – every step was decided (run or skip) and all executed steps
+///   met expectations. Note: individual steps may have been skipped by the
+///   user — `Pass` does not guarantee every step ran.
+/// - `Skip` – user aborted before all steps were reached, OR every step was
+///   explicitly skipped.
+/// - `Fail` – at least one step failed its expectation (run may be partial if
+///   user also aborted at the failure dialog).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScenarioResult {
     pub name: Option<String>,
