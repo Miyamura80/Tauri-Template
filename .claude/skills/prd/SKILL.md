@@ -74,13 +74,11 @@ Each story should be small enough to implement in one focused session.
 **Acceptance Criteria:**
 - [ ] Specific verifiable criterion
 - [ ] Another criterion
-- [ ] Typecheck/lint passes
-- [ ] **[UI stories only]** Verify in browser using dev-browser skill
+- [ ] Lint/Test/Build checks pass
 ```
 
 **Important:**
 - Acceptance criteria must be verifiable, not vague. "Works correctly" is bad. "Button shows confirmation dialog before deleting" is good.
-- **For any story with UI changes:** Always include "Verify in browser using dev-browser skill" as acceptance criteria. This ensures visual verification of frontend work.
 
 ### 4. Functional Requirements
 Numbered list of specific functionalities:
@@ -144,13 +142,13 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 
 ## User Stories
 
-### US-001: Add priority field to database
+### US-001: Add priority field to data model
 **Description:** As a developer, I need to store task priority so it persists across sessions.
 
 **Acceptance Criteria:**
-- [ ] Add priority column to tasks table: 'high' | 'medium' | 'low' (default 'medium')
-- [ ] Generate and run migration successfully
-- [ ] Typecheck passes
+- [ ] Add priority field to tasks model: 'high' | 'medium' | 'low' (default 'medium')
+- [ ] Update data model successfully
+- [ ] Lint/Test/Build checks pass
 
 ### US-002: Display priority indicator on task cards
 **Description:** As a user, I want to see task priority at a glance so I know what needs attention first.
@@ -158,8 +156,7 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 **Acceptance Criteria:**
 - [ ] Each task card shows colored priority badge (red=high, yellow=medium, gray=low)
 - [ ] Priority visible without hovering or clicking
-- [ ] Typecheck passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Lint/Test/Build checks pass
 
 ### US-003: Add priority selector to task edit
 **Description:** As a user, I want to change a task's priority when editing it.
@@ -168,8 +165,7 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 - [ ] Priority dropdown in task edit modal
 - [ ] Shows current priority as selected
 - [ ] Saves immediately on selection change
-- [ ] Typecheck passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Lint/Test/Build checks pass
 
 ### US-004: Filter tasks by priority
 **Description:** As a user, I want to filter the task list to see only high-priority items when I'm focused.
@@ -178,12 +174,11 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 - [ ] Filter dropdown with options: All | High | Medium | Low
 - [ ] Filter persists in URL params
 - [ ] Empty state message when no tasks match filter
-- [ ] Typecheck passes
-- [ ] Verify in browser using dev-browser skill
+- [ ] Lint/Test/Build checks pass
 
 ## Functional Requirements
 
-- FR-1: Add `priority` field to tasks table ('high' | 'medium' | 'low', default 'medium')
+- FR-1: Add `priority` field to tasks model ('high' | 'medium' | 'low', default 'medium')
 - FR-2: Display colored priority badge on each task card
 - FR-3: Include priority selector in task edit modal
 - FR-4: Add priority filter dropdown to task list header
@@ -199,7 +194,7 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 
 - Reuse existing badge component with color variants
 - Filter state managed via URL search params
-- Priority stored in database, not computed
+- Priority stored in backend, not computed
 
 ## Success Metrics
 

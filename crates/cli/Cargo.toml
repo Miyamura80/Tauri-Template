@@ -3,6 +3,7 @@ name = "appctl"
 version = "0.1.0"
 edition = "2021"
 description = "CLI test harness for the Tauri template app"
+license = "MIT"
 
 [[bin]]
 name = "appctl"
@@ -10,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 engine = { path = "../engine" }
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -17,3 +19,4 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "net",
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 uuid = { version = "1", features = ["v4"] }
+dialoguer = "0.12.0"

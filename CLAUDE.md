@@ -24,11 +24,12 @@ cargo clippy            # Run Rust linter
 ## Architecture
 
 - **src/** - Tauri frontend (React + TypeScript + Vite)
-- **src-tauri/** - Tauri backend (Rust)
-  - **src/global_config.rs** - Application configuration (migrated from Python)
-  - **src/logging.rs** - Tracing setup
-  - **src/lib.rs** - Main library entry point
+- **src-tauri/** - Tauri host (Rust) — wraps engine commands as Tauri handlers
+- **crates/engine/** - Platform-agnostic backend logic (no Tauri dependency)
+- **crates/cli/** - Headless CLI (`appctl`) for testing engine logic
 - **docs/** - Documentation (Next.js app)
+
+> **Making backend changes?** Use the `update-backend` skill for architecture details, command patterns, trait implementations, config access, and `appctl` testing workflows.
 
 ## Code Style
 
@@ -36,11 +37,6 @@ cargo clippy            # Run Rust linter
 - `camelCase` for functions/variables
 - `PascalCase` for components/classes
 - Use Biome for formatting/linting
-
-### Rust (Backend)
-- `snake_case` for functions/modules/variables
-- `PascalCase` for structs/enums
-- Follow standard Rust formatting (`cargo fmt`)
 
 ## Configuration Pattern
 
@@ -72,9 +68,11 @@ Structure as: `init()` → `continue(id)` → `cleanup(id)`
 - Handle rate limits, timeouts, retries at system boundaries
 
 ## Git Workflow
-- **Review**: Always trigger Greptile review MCP before pushing a PR and resolve any branch issues.
+- **Review**: Always trigger Greptile review MCP before pushing a PR and resolve any branch issues. If the Greptile MCP is not available, explicitly inform the user.
 - **Protected Branch**: `main` is protected. Do not push directly to `main`. Use PRs.
 - **Merge Strategy**: Squash and merge.
+- **Pre-commit CI gate**: Always run `make ci` before committing any changes. Ensure it passes with zero errors. Do not commit if `make ci` fails - fix all issues first, then commit.
+- **Prek hooks**: Always run `prek install` before starting work on a new PR to ensure Git hooks are active.
 
 ## Runbooks
 

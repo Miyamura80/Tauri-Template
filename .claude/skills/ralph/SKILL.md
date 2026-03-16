@@ -25,7 +25,7 @@ Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph di
       "acceptanceCriteria": [
         "Criterion 1",
         "Criterion 2",
-        "Typecheck passes"
+        "Lint/Test/Build checks pass"
       ],
       "priority": 1,
       "passes": false,
@@ -39,17 +39,17 @@ Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph di
 
 **Each story must be completable in ONE Ralph iteration (one context window).**
 
-Ralph spawns a fresh Claude Code/OpenCode instance per iteration with no memory of previous work. If a story is too big, the LLM runs out of context before finishing and produces broken code.
+Ralph spawns a fresh agent instance per iteration with no memory of previous work. If a story is too big, the LLM runs out of context before finishing and produces broken code.
 
 ### Right-sized stories:
-- Add a database column and migration
+- Update data model
 - Add a UI component to an existing page
-- Update a server action with new logic
-- Add a filter dropdown to a list
+- Update backend logic
+- Add a filter control to a list
 
 ### Too big (split these):
-- "Build the entire dashboard" - Split into: schema, queries, UI components, filters
-- "Add authentication" - Split into: schema, middleware, login UI, session handling
+- "Build the entire dashboard" - Split into: data model, queries, UI components, filters
+- "Add authentication" - Split into: data model, middleware, login UI, session handling
 - "Refactor the API" - Split into one story per endpoint or pattern
 
 **Rule of thumb:** If you cannot describe the change in 2-3 sentences, it is too big.
@@ -59,24 +59,24 @@ Ralph spawns a fresh Claude Code/OpenCode instance per iteration with no memory 
 Stories execute in priority order. Earlier stories must not depend on later ones.
 
 **Correct order:**
-1. Schema/database changes (migrations)
-2. Server actions / backend logic
+1. Data model changes
+2. Backend logic
 3. UI components that use the backend
 4. Dashboard/summary views that aggregate data
 
 **Wrong order:**
-1. UI component (depends on schema that does not exist yet)
-2. Schema change
+1. UI component (depends on data model that does not exist yet)
+2. Data model change
 
 ## Acceptance Criteria: Must Be Verifiable
 
 Each criterion must be something Ralph can CHECK, not something vague.
 
 ### Good criteria (verifiable):
-- "Add `status` column to tasks table with default 'pending'"
+- "Add `status` field to tasks model with default 'pending'"
 - "Filter dropdown has options: All, Active, Completed"
 - "Clicking delete shows confirmation dialog"
-- "Typecheck passes"
+- "Lint/Test/Build checks pass"
 - "Tests pass"
 
 ### Bad criteria (vague):
@@ -87,20 +87,13 @@ Each criterion must be something Ralph can CHECK, not something vague.
 
 ### Always include as final criterion:
 ```
-"Typecheck passes"
+"Lint/Test/Build checks pass"
 ```
 
 For stories with testable logic, also include:
 ```
 "Tests pass"
 ```
-
-### For stories that change UI, also include:
-```
-"Verify in browser using dev-browser skill"
-```
-
-Frontend stories are NOT complete until visually verified. Ralph will use the dev-browser skill to navigate to the page, interact with the UI, and confirm changes work.
 
 ## Conversion Rules
 
@@ -109,7 +102,27 @@ Frontend stories are NOT complete until visually verified. Ralph will use the de
 3. **Priority**: Based on dependency order, then document order
 4. **All stories**: `passes: false` and empty `notes`
 5. **branchName**: Derive from feature name, kebab-case, prefixed with `ralph/`
-6. **Always add**: "Typecheck passes" to every story's acceptance criteria
+6. **Always add**: "Lint/Test/Build checks pass" to every story's acceptance criteria
+7. **Final Story**: Always include a final story for documentation (README, build configuration) and verification.
+
+## The Final Documentation Story
+
+**Every** prd.json must end with a story dedicated to documentation and cleanup.
+
+**Requirements for the final story:**
+- Update `README.md` (if necessary) to document new features
+- Update build configuration (if necessary) with new commands
+- Document how to execute and test the new code
+- Verify all tests and checks pass
+
+**Example acceptance criteria:**
+```
+"Update README.md with instructions for [feature]",
+"Update build configuration if new build/test steps are needed",
+"Document how to run and test the changes",
+"Lint/Test/Build checks pass",
+"All tests pass"
+```
 
 ## Splitting Large PRDs
 
@@ -119,7 +132,7 @@ If a PRD has big features, split them:
 > "Add user notification system"
 
 **Split into:**
-1. US-001: Add notifications table to database
+1. US-001: Add notifications to data model
 2. US-002: Create notification service for sending notifications
 3. US-003: Add notification bell icon to header
 4. US-004: Create notification dropdown panel
@@ -140,7 +153,7 @@ Add ability to mark tasks with different statuses.
 - Toggle between pending/in-progress/done on task list
 - Filter list by status
 - Show status badge on each task
-- Persist status in database
+- Persist status in backend
 ```
 
 **Output prd.json:**
@@ -152,12 +165,12 @@ Add ability to mark tasks with different statuses.
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add status field to tasks table",
-      "description": "As a developer, I need to store task status in the database.",
+      "title": "Add status field to tasks model",
+      "description": "As a developer, I need to store task status in the backend.",
       "acceptanceCriteria": [
-        "Add status column: 'pending' | 'in_progress' | 'done' (default 'pending')",
-        "Generate and run migration successfully",
-        "Typecheck passes"
+        "Add status field: 'pending' | 'in_progress' | 'done' (default 'pending')",
+        "Update data model successfully",
+        "Lint/Test/Build checks pass"
       ],
       "priority": 1,
       "passes": false,
@@ -170,8 +183,7 @@ Add ability to mark tasks with different statuses.
       "acceptanceCriteria": [
         "Each task card shows colored status badge",
         "Badge colors: gray=pending, blue=in_progress, green=done",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Lint/Test/Build checks pass"
       ],
       "priority": 2,
       "passes": false,
@@ -185,8 +197,7 @@ Add ability to mark tasks with different statuses.
         "Each row has status dropdown or toggle",
         "Changing status saves immediately",
         "UI updates without page refresh",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Lint/Test/Build checks pass"
       ],
       "priority": 3,
       "passes": false,
@@ -199,10 +210,24 @@ Add ability to mark tasks with different statuses.
       "acceptanceCriteria": [
         "Filter dropdown: All | Pending | In Progress | Done",
         "Filter persists in URL params",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Lint/Test/Build checks pass"
       ],
       "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Documentation and Cleanup",
+      "description": "Ensure code is well-documented and buildable.",
+      "acceptanceCriteria": [
+        "Update README.md with status feature instructions",
+        "Update build configuration if necessary",
+        "Document how to test status filtering",
+        "Lint/Test/Build checks pass",
+        "All tests pass"
+      ],
+      "priority": 5,
       "passes": false,
       "notes": ""
     }
@@ -229,8 +254,8 @@ Before writing prd.json, verify:
 
 - [ ] **Previous run archived** (if prd.json exists with different branchName, archive it first)
 - [ ] Each story is completable in one iteration (small enough)
-- [ ] Stories are ordered by dependency (schema to backend to UI)
-- [ ] Every story has "Typecheck passes" as criterion
-- [ ] UI stories have "Verify in browser using dev-browser skill" as criterion
+- [ ] Stories are ordered by dependency (data model to backend to UI)
+- [ ] Every story has "Lint/Test/Build checks pass" as criterion
 - [ ] Acceptance criteria are verifiable (not vague)
 - [ ] No story depends on a later story
+- [ ] Final story covers README, build configuration, and documentation

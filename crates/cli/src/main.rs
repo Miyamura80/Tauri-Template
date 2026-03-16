@@ -77,6 +77,9 @@ enum Commands {
         /// Output as JSON.
         #[arg(long)]
         json: bool,
+        /// Run interactively with go-back navigation.
+        #[arg(long)]
+        interactive: bool,
     },
 
     /// Start daemon mode over a Unix socket.
@@ -105,6 +108,9 @@ enum Commands {
 
 #[tokio::main]
 async fn main() {
+    // Install ring as the rustls crypto provider (reqwest needs this with rustls-no-provider)
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     // Initialise tracing for CLI (structured, no tauri config dependency)
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
@@ -133,7 +139,8 @@ async fn main() {
             file,
             artifacts,
             json,
-        } => cmd_run_scenario(&file, json, artifacts, &ctx, &registry).await,
+            interactive,
+        } => cmd_run_scenario(&file, json, interactive, artifacts, &ctx, &registry).await,
         Commands::Serve { socket } => serve::run_daemon(socket, ctx, registry).await,
         Commands::Emit {
             event,
@@ -197,6 +204,7 @@ async fn cmd_probe(target: &str, json: bool, artifacts: Option<PathBuf>, ctx: &A
 async fn cmd_run_scenario(
     file: &PathBuf,
     json: bool,
+    interactive: bool,
     artifacts: Option<PathBuf>,
     ctx: &AppContext,
     registry: &CommandRegistry,
@@ -233,7 +241,81 @@ async fn cmd_run_scenario(
         }
     };
 
-    let scenario_result = engine::scenario::run_scenario(&scenario, ctx, registry).await;
+    let scenario_result = if interactive {
+        if !std::io::IsTerminal::is_terminal(&std::io::stdin()) {
+            eprintln!("error: --interactive requires a TTY (stdin is not a terminal)");
+            std::process::exit(1);
+        }
+        engine::scenario::run_scenario_interactive(
+            &scenario,
+            ctx,
+            registry,
+            |idx, total, label, can_go_back| {
+                use engine::scenario::StepChoice;
+
+                // block_in_place tells Tokio this closure will block on TTY I/O,
+                // so it can move async tasks off this worker thread.
+                tokio::task::block_in_place(|| {
+                    eprintln!("\n--- Step {}/{}: {} ---", idx + 1, total, label);
+
+                    let mut choices = vec!["Run", "Skip"];
+                    if can_go_back {
+                        choices.push("\u{2190} Go back");
+                    }
+
+                    let selection = match dialoguer::Select::new()
+                        .with_prompt("Run this step?")
+                        .items(&choices)
+                        .default(0)
+                        .interact_opt()
+                    {
+                        Ok(Some(s)) => s,
+                        Ok(None) => return None,
+                        Err(e) => {
+                            eprintln!("error: interactive prompt failed: {e}");
+                            return None;
+                        }
+                    };
+
+                    Some(match choices[selection] {
+                        "Run" => StepChoice::Run,
+                        "Skip" => StepChoice::Skip,
+                        _ => StepChoice::GoBack,
+                    })
+                })
+            },
+            |idx, total, label| {
+                use engine::scenario::FailureChoice;
+
+                tokio::task::block_in_place(|| {
+                    eprintln!("\n--- Step {}/{}: {} FAILED ---", idx + 1, total, label);
+
+                    let choices = ["Continue to next step", "Abort scenario"];
+                    let selection = match dialoguer::Select::new()
+                        .with_prompt("Step failed. What would you like to do?")
+                        .items(choices)
+                        .default(0)
+                        .interact_opt()
+                    {
+                        Ok(Some(s)) => s,
+                        Ok(None) => return None,
+                        Err(e) => {
+                            eprintln!("error: interactive prompt failed: {e}");
+                            return None;
+                        }
+                    };
+
+                    Some(match choices[selection] {
+                        "Continue to next step" => FailureChoice::Continue,
+                        _ => FailureChoice::Abort,
+                    })
+                })
+            },
+        )
+        .await
+    } else {
+        engine::scenario::run_scenario(&scenario, ctx, registry).await
+    };
 
     if json {
         let j = serde_json::to_string_pretty(&scenario_result).unwrap_or_default();
