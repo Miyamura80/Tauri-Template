@@ -176,7 +176,15 @@ where
                     idx,
                     StepOutcome {
                         status: StepStatus::Skipped,
-                        result: result_skip("scenario", &label, &run_id, 0, "user skipped"),
+                        result: {
+                            let mut r = result_skip("scenario", &label, &run_id, 0, "user skipped");
+                            // Override the default Unsupported code — this is
+                            // a deliberate user choice, not a platform limitation.
+                            if let Some(ref mut err) = r.error {
+                                err.code = ErrorCode::UserSkipped;
+                            }
+                            r
+                        },
                     },
                 );
                 idx += 1;
