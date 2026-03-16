@@ -28,15 +28,14 @@ pub enum FailureChoice {
 
 /// Outcome stored per step so re-running overwrites the previous result.
 #[derive(Debug, Clone)]
-pub struct StepOutcome {
-    pub label: String,
-    pub status: StepStatus,
-    pub result: CommandResult,
+pub(crate) struct StepOutcome {
+    pub(crate) status: StepStatus,
+    pub(crate) result: CommandResult,
 }
 
 /// Disposition of a completed step.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StepStatus {
+pub(crate) enum StepStatus {
     Completed,
     Skipped,
     Failed,
@@ -166,11 +165,13 @@ where
                 continue;
             }
             StepChoice::Skip => {
+                // This entry will be overwritten if the user later revisits
+                // this step via GoBack, or cleaned up by a GoBack from a
+                // subsequent step (which invalidates idx..total).
                 let run_id = new_run_id();
                 results.insert(
                     idx,
                     StepOutcome {
-                        label: label.clone(),
                         status: StepStatus::Skipped,
                         result: result_skip("scenario", &label, &run_id, 0, "user skipped"),
                     },
@@ -184,16 +185,16 @@ where
         let (result, expectation_met) = execute_step(step, idx, ctx, registry).await;
 
         if !expectation_met {
-            // Step failed — ask if user wants to continue or abort
-            let decision = failure_fn(idx, total, &label);
+            // Insert the failed outcome first so failure_fn sees a
+            // consistent results map if it ever inspects it.
             results.insert(
                 idx,
                 StepOutcome {
-                    label,
                     status: StepStatus::Failed,
                     result,
                 },
             );
+            let decision = failure_fn(idx, total, &label);
             if decision != Some(FailureChoice::Continue) {
                 break;
             }
@@ -201,7 +202,6 @@ where
             results.insert(
                 idx,
                 StepOutcome {
-                    label,
                     status: StepStatus::Completed,
                     result,
                 },
