@@ -161,15 +161,17 @@ async fn run_logo(
     // Use `cargo tauri icon` to generate all platform icons (png, ico, icns)
     // from the source image. This handles the Apple ICNS binary format correctly.
     // Save a 1024x1024 source so tauri icon has enough resolution for all sizes.
-    let source_icon = target.join("icon-source-1024.png");
+    let source_icon = std::env::temp_dir().join("icon-source-1024.png");
     let icon_1024 = resize(&icon_light_square, 1024, 1024, FilterType::Lanczos3);
     save_png(&icon_1024, &source_icon)?;
 
-    let tauri_icon_status = std::process::Command::new("cargo")
-        .args(["tauri", "icon"])
-        .arg(&source_icon)
-        .current_dir(&workspace)
-        .status();
+    let tauri_icon_status: Result<std::process::ExitStatus, std::io::Error> =
+        tokio::process::Command::new("cargo")
+            .args(["tauri", "icon"])
+            .arg(&source_icon)
+            .current_dir(&workspace)
+            .status()
+            .await;
 
     let needs_fallback = match tauri_icon_status {
         Ok(s) if s.success() => {
