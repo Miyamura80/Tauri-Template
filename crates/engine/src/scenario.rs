@@ -154,8 +154,9 @@ where
                 // immediately visible without reading clippy docs.
                 #[allow(clippy::implicit_saturating_sub)]
                 if idx > 0 {
-                    // Invalidate all steps at or after the current position so
-                    // stale results from the previous forward pass cannot
+                    // Invalidate all steps at or after the current position
+                    // (includes idx itself, which may hold a stale result
+                    // from a prior forward pass) so stale entries cannot
                     // masquerade as a completed run if the user later aborts.
                     // Note: results[idx-1] (the destination) may retain a
                     // stale entry — it will be overwritten when the user
