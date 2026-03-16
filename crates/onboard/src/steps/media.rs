@@ -70,7 +70,7 @@ pub fn run(project_root: &Path) -> StepResult {
         if let Err(e) = run_asset_gen(project_root, "logo", &suggestion, None) {
             return StepResult::Failed(format!("Logo generation failed: {}", e));
         }
-        ui::print_success("Logo assets saved to docs/public/ and src-tauri/icons/");
+        ui::print_success("Logo assets saved to docs/public/");
     }
 
     if generate_banner {
