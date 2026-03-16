@@ -147,6 +147,13 @@ fn default_timeout_ms() -> u64 {
 // Scenario result
 // ---------------------------------------------------------------------------
 
+/// Result of a scenario run.
+///
+/// When using `run_scenario_interactive`, `step_results` may contain fewer
+/// entries than the declared scenario steps if the user aborts mid-run or
+/// a step fails and the user chooses not to continue. Check
+/// `overall_status` to distinguish complete runs (`Pass`) from partial
+/// ones (`Skip` for user abort, `Fail` if any step failed its expectation).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScenarioResult {
     pub name: Option<String>,

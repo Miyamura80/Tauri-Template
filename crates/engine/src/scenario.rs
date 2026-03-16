@@ -157,6 +157,9 @@ where
                     // Invalidate all steps at or after the current position so
                     // stale results from the previous forward pass cannot
                     // masquerade as a completed run if the user later aborts.
+                    // Note: results[idx-1] (the destination) may retain a
+                    // stale entry — it will be overwritten when the user
+                    // re-decides that step (Run/Skip both insert).
                     for stale in idx..total {
                         results.remove(&stale);
                     }
