@@ -4,6 +4,7 @@ pub mod logging;
 pub use global_config as config;
 
 use global_config::FrontendConfig;
+use tauri::Emitter;
 
 // ---------------------------------------------------------------------------
 // Engine integration
