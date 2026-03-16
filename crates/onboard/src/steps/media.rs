@@ -76,13 +76,8 @@ pub fn run(project_root: &Path) -> StepResult {
     if generate_banner {
         println!();
         println!("  Generating banner...");
-        // Use the generated icon as a reference so the banner features the app logo
-        let icon_path = project_root
-            .join("docs")
-            .join("public")
-            .join("icon-light.png");
-        let icon_arg = icon_path.exists().then_some(icon_path);
-        if let Err(e) = run_asset_gen(project_root, "banner", &suggestion, icon_arg.as_deref()) {
+        // Let the binary's own auto-detection find docs/public/icon-light.png with graceful fallback
+        if let Err(e) = run_asset_gen(project_root, "banner", &suggestion, None) {
             return StepResult::Failed(format!("Banner generation failed: {}", e));
         }
         ui::print_success("Banner generated at media/banner.png");
