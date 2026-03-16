@@ -63,22 +63,24 @@ pub fn run(project_root: &Path) -> StepResult {
     let generate_banner = selection == 0 || selection == 1;
     let generate_logo = selection == 0 || selection == 2;
 
-    if generate_banner {
-        println!();
-        println!("  Generating banner...");
-        if let Err(e) = run_asset_gen(project_root, "banner", &suggestion) {
-            return StepResult::Failed(format!("Banner generation failed: {}", e));
-        }
-        ui::print_success("Banner generated at media/banner.png");
-    }
-
+    // Generate logo first so banner can use it as a reference
     if generate_logo {
         println!();
         println!("  Generating logo...");
-        if let Err(e) = run_asset_gen(project_root, "logo", &suggestion) {
+        if let Err(e) = run_asset_gen(project_root, "logo", &suggestion, None) {
             return StepResult::Failed(format!("Logo generation failed: {}", e));
         }
         ui::print_success("Logo assets saved to docs/public/");
+    }
+
+    if generate_banner {
+        println!();
+        println!("  Generating banner...");
+        // Let the binary's own auto-detection find docs/public/icon-light.png with graceful fallback
+        if let Err(e) = run_asset_gen(project_root, "banner", &suggestion, None) {
+            return StepResult::Failed(format!("Banner generation failed: {}", e));
+        }
+        ui::print_success("Banner generated at media/banner.png");
     }
 
     StepResult::Success
@@ -105,7 +107,12 @@ fn load_dotenv(path: &Path) -> Vec<(String, String)> {
         .collect()
 }
 
-fn run_asset_gen(project_root: &Path, mode: &str, suggestion: &str) -> Result<(), String> {
+fn run_asset_gen(
+    project_root: &Path,
+    mode: &str,
+    suggestion: &str,
+    icon: Option<&Path>,
+) -> Result<(), String> {
     let env_vars = load_dotenv(&project_root.join(".env"));
 
     let mut cmd = Command::new("cargo");
@@ -119,6 +126,10 @@ fn run_asset_gen(project_root: &Path, mode: &str, suggestion: &str) -> Result<()
 
     if !suggestion.is_empty() {
         cmd.arg("--suggestion").arg(suggestion);
+    }
+
+    if let Some(icon_path) = icon {
+        cmd.arg("--icon").arg(icon_path);
     }
 
     let status = cmd.status().map_err(|e| e.to_string())?;
