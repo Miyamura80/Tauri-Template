@@ -53,7 +53,8 @@ enum Command {
         /// Output directory for the banner (defaults to media/)
         #[arg(long)]
         output_dir: Option<PathBuf>,
-        /// Path to an icon/logo image to incorporate into the banner
+        /// Path to an icon/logo image to incorporate into the banner.
+        /// If omitted, falls back to docs/public/icon-light.png when it exists.
         #[arg(long)]
         icon: Option<PathBuf>,
     },
@@ -220,6 +221,7 @@ async fn run_banner(
         .context("Failed to create banner output directory")?;
 
     // Try to load an icon image: explicit --icon flag, or fall back to docs/public/icon-light.png
+    let explicit_icon = icon.is_some();
     let icon_path = icon.or_else(|| {
         let default = workspace.join("docs").join("public").join("icon-light.png");
         default.exists().then_some(default)
@@ -227,11 +229,21 @@ async fn run_banner(
     let icon_image = match &icon_path {
         Some(p) => {
             info!("Using icon from {}", p.display());
-            Some(
-                image::open(p)
-                    .with_context(|| format!("Failed to load icon at {}", p.display()))?
-                    .to_rgba8(),
-            )
+            match image::open(p) {
+                Ok(img) => Some(img.to_rgba8()),
+                Err(e) if !explicit_icon => {
+                    // Auto-detected path failed — degrade gracefully
+                    warn!(
+                        "Failed to load auto-detected icon at {}: {e}, continuing without reference",
+                        p.display()
+                    );
+                    None
+                }
+                Err(e) => {
+                    return Err(anyhow::Error::from(e))
+                        .with_context(|| format!("Failed to load icon at {}", p.display()));
+                }
+            }
         }
         None => {
             info!("No icon found, generating banner without logo reference");

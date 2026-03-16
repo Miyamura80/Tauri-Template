@@ -121,7 +121,7 @@ fn display_server() -> Option<String> {
     }
     #[cfg(target_os = "macos")]
     {
-        return Some("quartz".to_string());
+        Some("quartz".to_string())
     }
     #[cfg(not(target_os = "macos"))]
     {
