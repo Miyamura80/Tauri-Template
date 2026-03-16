@@ -91,7 +91,7 @@ This updates the version field in all three manifests atomically:
 ### Step 2 — Commit and tag
 
 ```bash
-git add src-tauri/tauri.conf.json src-tauri/Cargo.toml package.json
+git add src-tauri/tauri.conf.json src-tauri/Cargo.toml package.json Cargo.lock
 git commit -m "⚙️ bump version to 1.2.0"
 git tag v1.2.0
 git push origin main --tags

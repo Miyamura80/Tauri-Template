@@ -79,9 +79,19 @@ pub fn run() {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 if let Ok(updater) = tauri_plugin_updater::UpdaterExt::updater(&handle) {
-                    if let Ok(Some(_update)) = updater.check().await {
-                        // Notify the frontend; JS handles the confirmation dialog
-                        let _ = handle.emit("update-available", ());
+                    if let Ok(Some(update)) = updater.check().await {
+                        #[derive(serde::Serialize, Clone)]
+                        struct UpdatePayload {
+                            version: String,
+                            body: Option<String>,
+                        }
+                        let _ = handle.emit(
+                            "update-available",
+                            UpdatePayload {
+                                version: update.version.clone(),
+                                body: update.body.clone(),
+                            },
+                        );
                     }
                 }
             });
