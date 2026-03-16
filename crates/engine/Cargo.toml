@@ -14,3 +14,6 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "net", "io-util"] }
 thiserror = "2"
 async-trait = "0.1"
+
+[dev-dependencies]
+tempfile = "3.27.0"

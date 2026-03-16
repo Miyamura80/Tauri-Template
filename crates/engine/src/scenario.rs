@@ -301,8 +301,8 @@ steps:
         // Simulate: run step 0, go back at step 1, run step 0 again, run step 1, skip step 2
         // Use write_file for step 0 so we can verify it actually executed twice
         // by checking the file exists (proves re-execution, not caching).
-        let tmp =
-            std::env::temp_dir().join(format!("engine_test_go_back_{}.txt", uuid::Uuid::new_v4()));
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let tmp = tmp_dir.path().join("step0.txt");
         let tmp_str = tmp.to_str().unwrap().to_string();
 
         // Build the scenario struct directly instead of formatting a YAML
@@ -380,7 +380,7 @@ steps:
 
         // Verify step 0 actually re-executed (file recreated after deletion)
         assert!(tmp.exists(), "write_file should have been called twice");
-        let _ = std::fs::remove_file(&tmp);
+        // tmp_dir auto-cleans on drop, even on panic
     }
 
     #[tokio::test]
