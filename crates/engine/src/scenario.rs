@@ -521,6 +521,9 @@ steps:
         assert_eq!(result.overall_status, Status::Fail);
         // Only step 0 recorded, step 1 never reached
         assert_eq!(result.step_results.len(), 1);
+        // The failed step's CommandResult.status is Pass (ping executed OK)
+        // even though its expectation ("fail") was not met.
+        assert_eq!(result.step_results[0].status, Status::Pass);
     }
 
     #[tokio::test]
