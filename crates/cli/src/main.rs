@@ -239,6 +239,10 @@ async fn cmd_run_scenario(
     };
 
     let scenario_result = if interactive {
+        if !std::io::IsTerminal::is_terminal(&std::io::stdin()) {
+            eprintln!("error: --interactive requires a TTY (stdin is not a terminal)");
+            std::process::exit(1);
+        }
         engine::scenario::run_scenario_interactive(
             &scenario,
             ctx,

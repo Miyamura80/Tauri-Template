@@ -209,16 +209,17 @@ where
             if decision != Some(FailureChoice::Continue) {
                 break;
             }
-        } else {
-            results.insert(
-                idx,
-                StepOutcome {
-                    status: StepStatus::Completed,
-                    result,
-                },
-            );
+            idx += 1;
+            continue;
         }
 
+        results.insert(
+            idx,
+            StepOutcome {
+                status: StepStatus::Completed,
+                result,
+            },
+        );
         idx += 1;
     }
 
@@ -444,6 +445,7 @@ steps:
 
         assert_eq!(result.overall_status, Status::Skip);
         assert_eq!(result.step_results.len(), 1);
+        assert_eq!(result.step_results[0].status, Status::Pass);
     }
 
     #[tokio::test]
