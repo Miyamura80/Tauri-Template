@@ -296,24 +296,31 @@ steps:
             std::env::temp_dir().join(format!("engine_test_go_back_{}.txt", uuid::Uuid::new_v4()));
         let tmp_str = tmp.to_str().unwrap().to_string();
 
-        let yaml = format!(
-            r#"
-steps:
-  - call: "write_file"
-    args:
-      path: "{}"
-      content: "x"
-    expect_status: "pass"
-  - call: "ping"
-    args: {{}}
-    expect_status: "pass"
-  - call: "ping"
-    args: {{}}
-    expect_status: "pass"
-"#,
-            tmp_str
-        );
-        let scenario = load_scenario(&yaml).unwrap();
+        // Build the scenario struct directly instead of formatting a YAML
+        // string, to avoid backslash-escape issues with Windows paths.
+        let scenario = Scenario {
+            name: None,
+            steps: vec![
+                ScenarioStep::Call {
+                    call: "write_file".to_string(),
+                    args: serde_json::json!({ "path": tmp_str, "content": "x" }),
+                    expect_status: "pass".to_string(),
+                    timeout_ms: 30_000,
+                },
+                ScenarioStep::Call {
+                    call: "ping".to_string(),
+                    args: serde_json::json!({}),
+                    expect_status: "pass".to_string(),
+                    timeout_ms: 30_000,
+                },
+                ScenarioStep::Call {
+                    call: "ping".to_string(),
+                    args: serde_json::json!({}),
+                    expect_status: "pass".to_string(),
+                    timeout_ms: 30_000,
+                },
+            ],
+        };
         let ctx = AppContext::default_headless();
         let reg = CommandRegistry::new();
 
