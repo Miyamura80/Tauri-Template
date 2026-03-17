@@ -124,9 +124,11 @@ The `latest.json` file is generated automatically by `tauri-apps/tauri-action`
 and attached to every GitHub Release. It contains the latest version number,
 download URLs, and a cryptographic signature for each platform.
 
-If a newer version is found, a native dialog asks the user whether to download
-and install the update. The update is verified against your public key before
-being applied.
+If a newer version is found, the app emits an `update-available` event to the
+frontend (with `version` and `body` fields). Your frontend code should listen
+for this event and present a confirmation UI before calling the Tauri updater JS
+API to download and install the update. The update is verified against your
+public key before being applied.
 
 ---
 
