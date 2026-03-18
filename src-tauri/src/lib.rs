@@ -4,8 +4,6 @@ pub mod logging;
 pub use global_config as config;
 
 use global_config::FrontendConfig;
-use tauri::Emitter;
-
 // ---------------------------------------------------------------------------
 // Engine integration
 // ---------------------------------------------------------------------------
@@ -75,28 +73,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .setup(|app| {
-            let handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                if let Ok(updater) = tauri_plugin_updater::UpdaterExt::updater(&handle) {
-                    if let Ok(Some(update)) = updater.check().await {
-                        #[derive(serde::Serialize, Clone)]
-                        struct UpdatePayload {
-                            version: String,
-                            body: Option<String>,
-                        }
-                        let _ = handle.emit(
-                            "update-available",
-                            UpdatePayload {
-                                version: update.version.clone(),
-                                body: update.body.clone(),
-                            },
-                        );
-                    }
-                }
-            });
-            Ok(())
-        })
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             get_app_config,

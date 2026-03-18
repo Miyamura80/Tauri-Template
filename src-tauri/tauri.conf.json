@@ -37,7 +37,6 @@
 			"endpoints": [
 				"https://github.com/OWNER/REPO/releases/latest/download/latest.json"
 			],
-			"dialog": true,
 			"pubkey": "REPLACE_WITH_YOUR_TAURI_PUBLIC_KEY"
 		}
 	}

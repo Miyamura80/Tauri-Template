@@ -113,8 +113,22 @@ Once CI completes, visit **Releases** on GitHub:
 
 ## How the Auto-Updater Works
 
-When the app starts, `tauri-plugin-updater` fetches the endpoint configured in
-`src-tauri/tauri.conf.json`:
+The frontend uses `@tauri-apps/plugin-updater` (the JS API) to handle the full
+check → download → install flow directly from React. There is no Rust-side
+event emission — the `useAppUpdate` hook in `src/hooks/useAppUpdate.ts` manages
+the entire lifecycle.
+
+On startup (after a 3-second delay), the hook calls `check()` from the plugin.
+If a newer version is found, an in-app banner appears with three options:
+
+- **Update Now** — downloads and installs the update, showing a progress bar.
+  The app auto-restarts once installation completes.
+- **Later** — dismisses the banner for the current session. It will reappear on
+  the next launch.
+- **Skip This Version** — persists the version to `localStorage`, permanently
+  suppressing the notification for that specific version.
+
+The plugin fetches the endpoint configured in `src-tauri/tauri.conf.json`:
 
 ```
 https://github.com/OWNER/REPO/releases/latest/download/latest.json
@@ -122,13 +136,28 @@ https://github.com/OWNER/REPO/releases/latest/download/latest.json
 
 The `latest.json` file is generated automatically by `tauri-apps/tauri-action`
 and attached to every GitHub Release. It contains the latest version number,
-download URLs, and a cryptographic signature for each platform.
+download URLs, and a cryptographic signature for each platform. The update is
+verified against your public key before being applied.
 
-If a newer version is found, the app emits an `update-available` event to the
-frontend (with `version` and `body` fields). Your frontend code should listen
-for this event and present a confirmation UI before calling the Tauri updater JS
-API to download and install the update. The update is verified against your
-public key before being applied.
+---
+
+## Testing the Updater Locally
+
+The updater **cannot be tested in `tauri dev` mode** — it requires signed
+production builds. To test end-to-end:
+
+1. Build a signed release with an older version:
+   ```bash
+   make bump-version VERSION=0.0.1
+   bun run tauri build
+   ```
+2. Create a GitHub Release with a newer version (e.g., `v0.1.0`)
+3. Install and launch the older build
+4. The update banner should appear after ~3 seconds
+5. Click **Update Now** and verify the download progress + restart
+
+For UI development without a real update, you can temporarily mock the `check()`
+call in `useAppUpdate.ts` to return a fake update object.
 
 ---
 

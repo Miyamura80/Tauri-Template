@@ -501,3 +501,144 @@ dialog.settings-dialog::backdrop {
 	text-align: right;
 	color: color-mix(in srgb, var(--color-text-on-user) 60%, transparent);
 }
+
+/* ─── Update Banner ─────────────────────────────────────────────────────── */
+
+.update-banner {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 1000;
+	background-color: var(--color-surface);
+	border-bottom: 1px solid var(--color-border);
+	animation: update-banner-slide-in 300ms ease-out both;
+}
+
+.update-banner-content {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 10px 20px;
+	flex-wrap: wrap;
+}
+
+.update-banner-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: var(--font-size-sm);
+	min-width: 0;
+}
+
+.update-banner-text strong {
+	color: var(--color-text-primary);
+}
+
+.update-banner-changelog {
+	color: var(--color-text-secondary);
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 400px;
+}
+
+.update-banner-error {
+	color: #dc2626;
+	font-size: 12px;
+}
+
+.update-banner-actions {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.update-btn {
+	font-family: var(--font-sans);
+	font-size: 12px;
+	font-weight: 500;
+	padding: 5px 12px;
+	border-radius: 6px;
+	border: none;
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		opacity 0.15s ease;
+	white-space: nowrap;
+}
+
+.update-btn--primary {
+	background-color: var(--color-btn-bg);
+	color: var(--color-bg);
+}
+
+.update-btn--primary:hover {
+	background-color: var(--color-btn-hover);
+}
+
+.update-btn--secondary {
+	background-color: transparent;
+	color: var(--color-text-secondary);
+	border: 1px solid var(--color-border);
+}
+
+.update-btn--secondary:hover {
+	background-color: var(--color-border);
+	color: var(--color-text-primary);
+}
+
+.update-banner-progress-label {
+	color: var(--color-text-secondary);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+.update-banner-progress {
+	flex: 1;
+	min-width: 120px;
+	height: 6px;
+	background-color: var(--color-border);
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.update-banner-progress-bar {
+	height: 100%;
+	background-color: var(--color-btn-bg);
+	border-radius: 3px;
+	transition: width 200ms ease;
+}
+
+.update-banner-progress-bar--indeterminate {
+	width: 40%;
+	animation: update-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes update-banner-slide-in {
+	from {
+		opacity: 0;
+		transform: translateY(-100%);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes update-indeterminate {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(250%);
+	}
+}
+
+@media (prefers-color-scheme: dark) {
+	.update-banner-error {
+		color: #f87171;
+	}
+}
