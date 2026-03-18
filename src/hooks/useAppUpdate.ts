@@ -100,7 +100,9 @@ export function useAppUpdate(): AppUpdateState {
 
 	const retry = useCallback(async () => {
 		await checkForUpdate();
-		await updateNow();
+		if (updateRef.current) {
+			await updateNow();
+		}
 	}, [checkForUpdate, updateNow]);
 
 	const effectiveStatus = dismissed ? "idle" : status;
