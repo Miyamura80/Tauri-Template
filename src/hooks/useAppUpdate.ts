@@ -1,3 +1,4 @@
+import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -71,12 +72,15 @@ export function useAppUpdate(): AppUpdateState {
 					downloadedBytes += event.data.chunkLength;
 					if (totalBytes > 0) {
 						setProgress(Math.round((downloadedBytes / totalBytes) * 100));
+					} else {
+						setProgress(-1);
 					}
 				} else if (event.event === "Finished") {
 					setProgress(100);
 				}
 			});
 			setStatus("ready");
+			await relaunch();
 		} catch (e) {
 			setError(e instanceof Error ? e.message : String(e));
 			setStatus("error");

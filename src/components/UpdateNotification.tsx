@@ -59,12 +59,16 @@ export function UpdateNotification() {
 					<>
 						<div className="update-banner-text">
 							<strong>Downloading v{info.version}...</strong>
-							<span className="update-banner-progress-label">{progress}%</span>
+							{progress >= 0 && (
+								<span className="update-banner-progress-label">
+									{progress}%
+								</span>
+							)}
 						</div>
 						<div className="update-banner-progress">
 							<div
-								className="update-banner-progress-bar"
-								style={{ width: `${progress}%` }}
+								className={`update-banner-progress-bar${progress < 0 ? " update-banner-progress-bar--indeterminate" : ""}`}
+								style={progress >= 0 ? { width: `${progress}%` } : undefined}
 							/>
 						</div>
 					</>
