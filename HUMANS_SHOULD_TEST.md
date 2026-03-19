@@ -28,3 +28,4 @@ The auto-updater uses `@tauri-apps/plugin-updater` to check, download, install, 
 - [ ] **Skip This Version** — Click "Skip This Version" and verify the banner is dismissed. Quit and relaunch — the banner should **not** reappear for that version. (Clear `localStorage` key `tauri-app:skipped-update-version` to reset.)
 - [ ] **Dark mode** — Verify the banner styles correctly in both light and dark mode.
 - [ ] **Error + Retry** — Simulate a network failure mid-download (e.g., disconnect Wi-Fi) and verify the error state appears with a "Retry" button that re-checks and re-downloads.
+- [ ] **Error + Dismiss** — In the error state, click "Dismiss" and verify the banner is dismissed (same behaviour as "Later" — reappears on next relaunch).
