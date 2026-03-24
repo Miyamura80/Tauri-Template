@@ -1,0 +1,15 @@
+---
+description: Rules for implementing UI components and designs
+alwaysApply: false
+globs:
+  - "src/**/*.{ts,tsx}"
+  - "src/components/**/*"
+---
+
+# UI Implementation Rules
+
+- Reuse existing UI components from `/src/components/`; these are the primitives we can build with.
+- Create new components by composing existing ones if you can't find any that solve the problem.
+- Ask the human how they want to proceed when there are missing components or designs.
+- Use the `useConfig` hook for any configuration-driven UI behavior.
+- Keep component files focused; one component per file.

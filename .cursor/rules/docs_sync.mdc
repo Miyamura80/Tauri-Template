@@ -1,0 +1,41 @@
+---
+description: Documentation sync requirements for user-facing changes
+alwaysApply: false
+globs:
+  - "docs/**/*.{mdx,md}"
+  - "src/**/*.{ts,tsx}"
+---
+
+# Documentation Sync Requirements
+
+When making changes to user-facing features, documentation **must** be updated in the same PR.
+
+## What Requires Documentation Updates
+
+Any changes to:
+
+- **Frontend UI** (`/src/`) - Views, components, navigation, features
+- **Tauri commands** (`/src-tauri/src/`) - Backend commands exposed to frontend
+- **Configuration options** that users interact with
+- **New features** visible to users
+- **Removed or renamed features**
+- **Changed workflows or behavior**
+
+## Documentation Location
+
+User-facing documentation lives in `/docs/content/`.
+
+## Automated Translation
+
+Docs under `docs/content/` are auto-translated by the Jules Translation Sync workflow. Do NOT manually translate doc files. Edit the English source and the workflow will update all locales (`zh`, `es`, `ja`).
+
+See `docs/translation-guide.md` for the full glossary and rules.
+
+## Verification Steps
+
+Before completing a PR with user-facing changes:
+
+1. Search docs for references to changed components/features
+2. Verify documentation matches the new implementation
+3. Ensure navigation paths and descriptions are correct
+4. Only edit English source files; translations are automated
