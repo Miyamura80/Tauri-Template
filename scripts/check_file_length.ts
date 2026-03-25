@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { resolve, relative, join } from "node:path";
+import { resolve, relative, join, extname } from "node:path";
 
 const REPO_ROOT = resolve(import.meta.dirname, "..");
 
@@ -31,11 +31,6 @@ function loadConfig(): Config {
 	};
 }
 
-function extOf(name: string): string {
-	const i = name.lastIndexOf(".");
-	return i === -1 ? "" : name.slice(i);
-}
-
 function walk(dir: string): string[] {
 	const results: string[] = [];
 	for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -43,7 +38,7 @@ function walk(dir: string): string[] {
 			if (!SKIP_DIRS.has(entry.name)) {
 				results.push(...walk(join(dir, entry.name)));
 			}
-		} else if (EXTENSIONS.has(extOf(entry.name))) {
+		} else if (EXTENSIONS.has(extname(entry.name))) {
 			results.push(join(dir, entry.name));
 		}
 	}
@@ -56,11 +51,11 @@ function main(): number {
 	const violations: [string, number][] = [];
 
 	for (const file of walk(REPO_ROOT)) {
-		const rel = relative(REPO_ROOT, file);
+		const rel = relative(REPO_ROOT, file).replace(/\\/g, "/");
 		if (excludeSet.has(rel)) continue;
 
 		const content = readFileSync(file, "utf-8");
-		const lineCount = content.split("\n").length;
+		const lineCount = content.trimEnd().split("\n").length;
 		if (lineCount > config.max_lines) {
 			violations.push([rel, lineCount]);
 		}
