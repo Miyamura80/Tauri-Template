@@ -189,7 +189,12 @@ link-check: ## Check for broken links in markdown files
 	fi
 	@echo "$(GREEN)✅ Link check completed.$(RESET)"
 
-ci: fmt lint knip audit link-check test ## Run all CI checks
+file_len_check: ## Check TS/RS files don't exceed max line count
+	@echo "$(YELLOW)🔍 Checking file lengths...$(RESET)"
+	@bun run scripts/check_file_length.ts
+	@echo "$(GREEN)✅ File length check completed.$(RESET)"
+
+ci: fmt lint knip audit link-check test file_len_check ## Run all CI checks
 	@echo "$(GREEN)✅ CI checks completed.$(RESET)"
 
 
