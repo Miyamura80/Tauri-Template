@@ -27,6 +27,14 @@
 		"ajv": "^6.14.0",
 		"rollup": ">=4.59.0"
 	},
+	"fileLength": {
+		"max_lines": 500,
+		"exclude": [
+			"src-tauri/src/bin/asset_gen.rs",
+			"crates/engine/src/scenario.rs",
+			"src-tauri/src/logging.rs"
+		]
+	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.5",
 		"@tauri-apps/cli": "^2.10.0",
