@@ -51,6 +51,8 @@ impl CommandRegistry {
         reg.register("ping", cmd_ping);
         reg.register("read_file", cmd_read_file);
         reg.register("write_file", cmd_write_file);
+        reg.register("system_info", cmd_system_info);
+        reg.register("list_dir", cmd_list_dir);
         reg
     }
 
@@ -165,6 +167,54 @@ fn cmd_write_file(args: Value, ctx: &AppContext) -> Result<Value, CommandError> 
     Ok(serde_json::json!({ "bytes_written": data.len() }))
 }
 
+/// `system_info` – return OS, architecture, and hostname.
+///
+/// Args: `{}` (none required)
+/// Returns: `{ "os": "macos", "arch": "aarch64", "hostname": "...", "headless": false }`
+fn cmd_system_info(_args: Value, _ctx: &AppContext) -> Result<Value, CommandError> {
+    let hostname = hostname::get()
+        .map(|h| h.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "unknown".to_string());
+
+    Ok(serde_json::json!({
+        "os": std::env::consts::OS,
+        "arch": std::env::consts::ARCH,
+        "hostname": hostname,
+        "headless": crate::types::detect_headless(),
+    }))
+}
+
+/// `list_dir` – list entries in a directory.
+///
+/// Args: `{ "path": "/some/dir" }`
+/// Returns: `{ "entries": [{ "name": "foo.txt", "is_dir": false, "size_bytes": 42 }, ...] }`
+fn cmd_list_dir(args: Value, ctx: &AppContext) -> Result<Value, CommandError> {
+    let path_str = args
+        .get("path")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| CommandError::InvalidInput("missing 'path' string field".into()))?;
+
+    let path = std::path::Path::new(path_str);
+    let dir_entries = ctx.fs().list_dir(path).map_err(|e| match e {
+        crate::traits::CapError::PermissionDenied(m) => CommandError::PermissionDenied(m),
+        crate::traits::CapError::Io(io) => CommandError::Io(io),
+        other => CommandError::Other(other.to_string()),
+    })?;
+
+    let entries: Vec<Value> = dir_entries
+        .into_iter()
+        .map(|e| {
+            serde_json::json!({
+                "name": e.name,
+                "is_dir": e.is_dir,
+                "size_bytes": e.size_bytes,
+            })
+        })
+        .collect();
+
+    Ok(serde_json::json!({ "entries": entries }))
+}
+
 // ===========================================================================
 // Tests
 // ===========================================================================
@@ -224,5 +274,48 @@ mod tests {
         assert!(names.contains(&"ping"));
         assert!(names.contains(&"read_file"));
         assert!(names.contains(&"write_file"));
+        assert!(names.contains(&"system_info"));
+        assert!(names.contains(&"list_dir"));
+    }
+
+    #[test]
+    fn test_system_info_command() {
+        let ctx = AppContext::default_headless();
+        let reg = CommandRegistry::new();
+        let result = reg.execute("system_info", serde_json::json!({}), &ctx);
+        assert_eq!(result.status, Status::Pass);
+        let data = result.data.unwrap();
+        assert!(data["os"].is_string());
+        assert!(data["arch"].is_string());
+        assert!(data["hostname"].is_string());
+    }
+
+    #[test]
+    fn test_list_dir_command() {
+        let ctx = AppContext::default_headless();
+        let reg = CommandRegistry::new();
+
+        let tmp = std::env::temp_dir();
+        let path_str = tmp.to_str().unwrap();
+        let result = reg.execute(
+            "list_dir",
+            serde_json::json!({ "path": path_str }),
+            &ctx,
+        );
+        assert_eq!(result.status, Status::Pass);
+        let data = result.data.unwrap();
+        assert!(data["entries"].is_array());
+    }
+
+    #[test]
+    fn test_list_dir_not_a_directory() {
+        let ctx = AppContext::default_headless();
+        let reg = CommandRegistry::new();
+        let result = reg.execute(
+            "list_dir",
+            serde_json::json!({ "path": "/nonexistent_dir_12345" }),
+            &ctx,
+        );
+        assert_eq!(result.status, Status::Error);
     }
 }

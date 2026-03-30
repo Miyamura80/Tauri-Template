@@ -31,6 +31,13 @@ pub enum CapError {
 // Filesystem operations
 // ---------------------------------------------------------------------------
 
+/// Metadata for a single directory entry.
+pub struct DirEntry {
+    pub name: String,
+    pub is_dir: bool,
+    pub size_bytes: u64,
+}
+
 pub trait FilesystemOps: Send + Sync {
     fn read_file(&self, path: &Path) -> CapResult<Vec<u8>>;
     fn write_file(&self, path: &Path, data: &[u8]) -> CapResult<()>;
@@ -39,6 +46,7 @@ pub trait FilesystemOps: Send + Sync {
     fn remove_dir_all(&self, path: &Path) -> CapResult<()>;
     fn exists(&self, path: &Path) -> bool;
     fn temp_dir(&self) -> PathBuf;
+    fn list_dir(&self, path: &Path) -> CapResult<Vec<DirEntry>>;
 }
 
 // ---------------------------------------------------------------------------

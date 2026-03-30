@@ -58,6 +58,21 @@ impl FilesystemOps for StdFilesystem {
     fn temp_dir(&self) -> PathBuf {
         std::env::temp_dir()
     }
+
+    fn list_dir(&self, path: &Path) -> CapResult<Vec<DirEntry>> {
+        let read_dir = std::fs::read_dir(path)?;
+        let mut entries = Vec::new();
+        for entry in read_dir {
+            let entry = entry?;
+            let meta = entry.metadata()?;
+            entries.push(DirEntry {
+                name: entry.file_name().to_string_lossy().into_owned(),
+                is_dir: meta.is_dir(),
+                size_bytes: meta.len(),
+            });
+        }
+        Ok(entries)
+    }
 }
 
 // ===========================================================================
