@@ -64,7 +64,8 @@ impl FilesystemOps for StdFilesystem {
         let mut entries = Vec::new();
         for entry in read_dir {
             let entry = entry?;
-            let meta = entry.metadata()?;
+            // Skip entries whose metadata is transiently unavailable
+            let Ok(meta) = entry.metadata() else { continue };
             entries.push(DirEntry {
                 name: entry.file_name().to_string_lossy().into_owned(),
                 is_dir: meta.is_dir(),

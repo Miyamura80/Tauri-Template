@@ -623,10 +623,9 @@ steps:
     }
 
     #[tokio::test]
-    async fn test_timeout_produces_error() {
-        // Verify the timeout_ms field is honoured by using a generous
-        // timeout (ping always succeeds well within 5s) and confirming
-        // it does NOT time out.
+    async fn test_generous_timeout_does_not_fire() {
+        // Verify the timeout_ms field is accepted without panicking and that
+        // a generous deadline (5 s) does NOT trigger a false timeout on ping.
         let scenario = Scenario {
             name: Some("timeout test".into()),
             steps: vec![ScenarioStep::Call {
