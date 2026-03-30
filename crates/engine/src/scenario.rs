@@ -90,10 +90,7 @@ async fn execute_step(
                         &run_id,
                         *timeout_ms,
                         ErrorCode::Timeout,
-                        format!(
-                            "step {} ('{}') timed out after {}ms",
-                            idx, call, timeout_ms
-                        ),
+                        format!("step {} ('{}') timed out after {}ms", idx, call, timeout_ms),
                     )
                 }
             };

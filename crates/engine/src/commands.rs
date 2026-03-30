@@ -297,11 +297,7 @@ mod tests {
 
         let tmp = std::env::temp_dir();
         let path_str = tmp.to_str().unwrap();
-        let result = reg.execute(
-            "list_dir",
-            serde_json::json!({ "path": path_str }),
-            &ctx,
-        );
+        let result = reg.execute("list_dir", serde_json::json!({ "path": path_str }), &ctx);
         assert_eq!(result.status, Status::Pass);
         let data = result.data.unwrap();
         assert!(data["entries"].is_array());
