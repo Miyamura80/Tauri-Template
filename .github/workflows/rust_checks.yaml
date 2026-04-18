@@ -29,7 +29,6 @@ jobs:
         with:
           command: check
           manifest-path: Cargo.toml
-          config: deny.toml
           rust-version: stable
 
   clippy-test:
