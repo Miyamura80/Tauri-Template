@@ -26,3 +26,6 @@ docs/bun.lockb
 .env
 .prod.env
 opencode.json
+
+# Agent session files
+.claude/scheduled_tasks.lock
