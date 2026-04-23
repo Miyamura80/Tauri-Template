@@ -4,6 +4,7 @@ This file provides guidance to AI agents working with code in this repository.
 
 Tauri template for desktop application development with React and TypeScript.
 **Note:** This project has migrated away from Python. Use Rust for backend logic and Node/Bun for frontend/scripts.
+**Before any other work in this repo, enable prek:** `bun add -g prek && prek install`. Hooks are defined in `prek.toml`.
 
 ## Common Commands
 
@@ -66,6 +67,10 @@ Structure as: `init()` → `continue(id)` → `cleanup(id)`
 - Keep state serializable
 - Use descriptive IDs (runId, taskId)
 - Handle rate limits, timeouts, retries at system boundaries
+
+## Subagents
+
+- Folder-size CI failure → spawn subagent `.claude/agents/folder-refactor-advisor.md`.
 
 ## Git Workflow
 - **Review**: Always trigger Greptile review MCP before pushing a PR and resolve any branch issues. If the Greptile MCP is not available, explicitly inform the user.
