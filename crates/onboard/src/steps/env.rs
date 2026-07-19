@@ -131,7 +131,7 @@ pub fn run(project_root: &Path) -> StepResult {
             println!(
                 "    {} {} = {}",
                 highlight.apply_to("\u{2714}"),
-                highlight.apply_to(format!(" {} ", &entry.key)),
+                highlight.apply_to(format!(" {} ", entry.key)),
                 mask_value(&current)
             );
         }
