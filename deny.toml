@@ -1,9 +1,6 @@
 # cargo-deny configuration
 
 [advisories]
-# core2 0.4.0 is yanked but transitively pinned (rav1e -> bitstream-io -> core2,
-# asset-gen/dev-time only) with no compatible upgrade; warn instead of failing.
-yanked = "warn"
 ignore = [
     # UNMAINTAINED TRANSITIVES - Tauri v2 Dependencies (Linux/GTK3 stack)
     # These are foundational to the current Tauri/Wry/Tao ecosystem on Linux.
@@ -31,8 +28,6 @@ ignore = [
 # UNMAINTAINED TRANSITIVES - CSS/Selectors
 # Pulled in by kuchikiki -> selectors -> fxhash.
     "RUSTSEC-2025-0057", # fxhash is unmaintained
-    "RUSTSEC-2024-0436", # paste is unmaintained and only used by rav1e -> ravif -> image
-    "RUSTSEC-2026-0105", # core2 unmaintained + yanked, no safe upgrade (rav1e -> bitstream-io -> core2)
 
     # VULNERABILITY (transitive, unfixable without upstream) - quick-xml DoS
     # RUSTSEC-2026-0195: unbounded namespace-declaration allocation in quick-xml
