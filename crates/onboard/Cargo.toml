@@ -1,0 +1,18 @@
+[package]
+name = "onboard"
+version = "0.1.0"
+edition = "2021"
+description = "Interactive onboarding CLI for the Tauri template (rename, deps, env, hooks, media)"
+license = "MIT"
+
+[[bin]]
+name = "onboard"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+console = "0.15"
+dialoguer = "0.12"
+
+[dev-dependencies]
+tempfile = "3"

@@ -66,7 +66,7 @@ async fn execute_step(
             timeout_ms,
         } => {
             // NOTE: registry.execute() is synchronous, so the timeout can
-            // only fire between .await points — it will not preempt a
+            // only fire between .await points - it will not preempt a
             // long-running sync command mid-execution. This will work
             // correctly once async command support is added. For now it
             // still validates the timeout field and produces the right
@@ -149,7 +149,7 @@ pub async fn run_scenario(
 /// - `failure_fn` is called when a step fails, asking the user whether to
 ///   continue or abort. Returns `None` to abort.
 ///
-/// This keeps the engine crate free of direct terminal I/O dependencies —
+/// This keeps the engine crate free of direct terminal I/O dependencies -
 /// the CLI crate provides the real prompters.
 pub async fn run_scenario_interactive<F, G>(
     scenario: &Scenario,
@@ -179,7 +179,7 @@ where
         match choice {
             StepChoice::GoBack => {
                 // Use an explicit guard rather than saturating_sub so the
-                // intent — stay at step 0 when can_go_back is false — is
+                // intent - stay at step 0 when can_go_back is false - is
                 // immediately visible without reading clippy docs.
                 #[allow(clippy::implicit_saturating_sub)]
                 if idx > 0 {
@@ -188,7 +188,7 @@ where
                     // from a prior forward pass) so stale entries cannot
                     // masquerade as a completed run if the user later aborts.
                     // Note: results[idx-1] (the destination) may retain a
-                    // stale entry — it will be overwritten when the user
+                    // stale entry - it will be overwritten when the user
                     // re-decides that step (Run/Skip both insert).
                     for stale in idx..total {
                         results.remove(&stale);
@@ -208,7 +208,7 @@ where
                         status: StepStatus::Skipped,
                         result: {
                             let mut r = result_skip("scenario", &label, &run_id, 0, "user skipped");
-                            // Override the default Unsupported code — this is
+                            // Override the default Unsupported code - this is
                             // a deliberate user choice, not a platform limitation.
                             if let Some(ref mut err) = r.error {
                                 err.code = ErrorCode::UserSkipped;
@@ -514,7 +514,7 @@ steps:
         assert_eq!(result.step_results.len(), 3);
         assert_eq!(result.step_results[0].status, Status::Pass);
         // step 1's CommandResult.status is Pass (ping succeeded) but its expectation
-        // was "fail" — the only externally visible evidence is overall_status above.
+        // was "fail" - the only externally visible evidence is overall_status above.
         assert_eq!(result.step_results[1].status, Status::Pass);
         // step 1 failed expectation but we continued to step 2
         assert_eq!(result.step_results[2].status, Status::Pass);

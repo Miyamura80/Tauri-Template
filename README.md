@@ -74,7 +74,7 @@ Modern stack for cross-platform desktop application development.
 
 ## CLI Test Harness (`appctl`)
 
-Headless CLI (`crates/cli`) that drives the same `engine` crate as the GUI — for VM-based compatibility testing without a window server. See [`crates/cli/README.md`](crates/cli/README.md).
+Headless CLI (`crates/cli`) that drives the same `engine` crate as the GUI - for VM-based compatibility testing without a window server. See [`crates/cli/README.md`](crates/cli/README.md).
 
 ## Configuration
 
@@ -92,11 +92,11 @@ Claude Code skills live in `.claude/skills/`. Invoke them with `/skill-name`.
 
 | Skill | Description |
 |-------|-------------|
-| `/update-backend` | Guide for Rust backend changes — engine crate, Tauri commands, CLI harness, and testing patterns |
+| `/update-backend` | Guide for Rust backend changes - engine crate, Tauri commands, CLI harness, and testing patterns |
 | `/code-quality` | Run formatting and linting checks (Biome + Clippy) |
 | `/prd` | Generate a Product Requirements Document for a new feature |
 | `/ralph` | Convert a PRD to `prd.json` format for the Ralph autonomous agent |
-| `/cleanup` | Git branch hygiene — delete merged branches, prune stale refs, sync deps |
+| `/cleanup` | Git branch hygiene - delete merged branches, prune stale refs, sync deps |
 
 ## Credits
 

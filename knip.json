@@ -5,8 +5,8 @@
 	"ignoreDependencies": ["@tauri-apps/plugin-opener", "dependency-cruiser"],
 	"workspaces": {
 		".": {
-			"project": ["src/**/*.{ts,tsx}"],
-			"entry": ["src/main.tsx"]
+			"project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts"],
+			"entry": ["src/main.tsx", "scripts/**/*.ts"]
 		},
 		"docs": {
 			"project": ["**/*.{ts,tsx}"],

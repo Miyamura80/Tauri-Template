@@ -25,7 +25,7 @@ cargo clippy            # Run Rust linter
 ## Architecture
 
 - **src/** - Tauri frontend (React + TypeScript + Vite)
-- **src-tauri/** - Tauri host (Rust) — wraps engine commands as Tauri handlers
+- **src-tauri/** - Tauri host (Rust) - wraps engine commands as Tauri handlers
 - **crates/engine/** - Platform-agnostic backend logic (no Tauri dependency)
 - **crates/cli/** - Headless CLI (`appctl`) for testing engine logic
 - **docs/** - Documentation (Next.js app)
@@ -88,7 +88,7 @@ Operational runbooks live in `docs/runbooks/`. After resolving a difficult issue
 
 Docs under `docs/content/` are auto-translated by the **Jules Translation Sync**
 workflow (`.github/workflows/jules-sync-translations.yml`). Do NOT manually
-translate doc files — edit the English source and the workflow will update all
+translate doc files - edit the English source and the workflow will update all
 locales (`zh`, `es`, `ja`).
 
 See [`docs/translation-guide.md`](docs/translation-guide.md) for the full
