@@ -155,7 +155,7 @@ fn default_timeout_ms() -> u64 {
 /// a step fails and the user chooses not to continue. `overall_status` values:
 /// - `Pass` – every step was decided (run or skip) and all executed steps
 ///   met expectations. Note: individual steps may have been skipped by the
-///   user — `Pass` does not guarantee every step ran.
+///   user - `Pass` does not guarantee every step ran.
 /// - `Skip` – user aborted before all steps were reached, OR every step was
 ///   explicitly skipped.
 /// - `Fail` – at least one step failed its expectation (run may be partial if

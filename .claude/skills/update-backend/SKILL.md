@@ -5,7 +5,7 @@ description: Guide for making changes to the Rust backend of the Tauri template,
 
 # Update Backend Skill
 
-Use this skill whenever you are modifying Rust backend logic — adding commands, probes, traits, or configuration in `crates/engine`, `crates/cli`, or `src-tauri`.
+Use this skill whenever you are modifying Rust backend logic - adding commands, probes, traits, or configuration in `crates/engine`, `crates/cli`, or `src-tauri`.
 
 ## Architecture
 
@@ -13,16 +13,16 @@ The backend is split into three layers:
 
 | Layer | Path | Role |
 |-------|------|------|
-| **engine** | `crates/engine/` | All real backend logic. No Tauri dependency — runs in CLI, tests, and WASM. |
+| **engine** | `crates/engine/` | All real backend logic. No Tauri dependency - runs in CLI, tests, and WASM. |
 | **appctl CLI** | `crates/cli/` | Headless test harness that drives `engine` for VM/CI compatibility testing. |
 | **src-tauri** | `src-tauri/` | Tauri host: wraps `engine` commands as Tauri `#[tauri::command]` handlers. |
 
 ### Design Principles (engine)
 
-- **No Tauri dependency** — never import Tauri types inside `crates/engine`.
-- **Trait-based OS access** — filesystem, network, and clipboard go through `FilesystemOps`, `NetworkOps`, `ClipboardOps`. Inject real platform or headless stubs via `AppContext`.
-- **Structured results** — every operation returns `CommandResult` with `run_id`, `status`, `error`, `timing_ms`, and `env_summary`.
-- **No panics on missing capabilities** — headless environments get `SKIP` or `UNSUPPORTED` error codes.
+- **No Tauri dependency** - never import Tauri types inside `crates/engine`.
+- **Trait-based OS access** - filesystem, network, and clipboard go through `FilesystemOps`, `NetworkOps`, `ClipboardOps`. Inject real platform or headless stubs via `AppContext`.
+- **Structured results** - every operation returns `CommandResult` with `run_id`, `status`, `error`, `timing_ms`, and `env_summary`.
+- **No panics on missing capabilities** - headless environments get `SKIP` or `UNSUPPORTED` error codes.
 
 ## Code Style (Rust)
 
@@ -83,7 +83,7 @@ impl ClipboardOps for MyClipboard {
 }
 ```
 
-Inject via `AppContext` — real platform in `src-tauri`, headless stubs in tests and `appctl`.
+Inject via `AppContext` - real platform in `src-tauri`, headless stubs in tests and `appctl`.
 
 ## Configuration
 

@@ -59,12 +59,12 @@ Rules:
 
 - `.claude/rules/*.md` vs `.codex/rules/*.rules` - different languages (prose vs permission DSL). Maintain separately.
 - `.claude/commands/*.md` - Claude-only; Codex has no slash-command runtime.
-- `CLAUDE.md` vs `AGENTS.md` - both auto-read by their respective tool; keep them as separate documents, though content may overlap.
+- `CLAUDE.md` vs `AGENTS.md` - in this repo every `AGENTS.md` is a symlink to the sibling `CLAUDE.md` (Codex reads `AGENTS.md`, Claude reads `CLAUDE.md`, both see the same file), maintained by `make sync-agent-config`. Edit `CLAUDE.md`; do not replace the symlink with a divergent copy.
 
 ## Tooling
 
 - `make sync-agent-config` - idempotent. Creates missing `.claude/skills/` symlinks for every shared skill under `.agents/skills/`, regenerates `.codex/agents/*.toml` from `.claude/agents/*.md`, auto-prunes dangling symlinks and orphan TOMLs silently.
-- Pre-commit: [`prek`](https://prek.j178.dev/installation/), configured in `prek.toml` at repo root. Register once per clone with `prek install`. The hook runs `bun run scripts/sync_agent_config.ts --check`, which regenerates in-memory and fails the commit if the committed symlinks or `.codex/agents/*.toml` would drift (rather than rewriting them). Run `make sync-agent-config` to apply the fixes, then stage and commit again.
+- Pre-commit: [`prek`](https://prek.j178.dev/installation/), configured in `prek.toml` at repo root. Register once per clone with `prek install`. The hook runs `bun run scripts/sync_agent_config.ts --check`, which regenerates in-memory and fails the commit if the committed symlinks, `.codex/agents/*.toml`, or `AGENTS.md` mirrors would drift (rather than rewriting them). Run `make sync-agent-config` to apply the fixes, then stage and commit again.
 - TypeScript script runs via `bun run scripts/sync_agent_config.ts`; deps (`yaml`) are in `package.json`.
 
 ## When adding a new skill or subagent

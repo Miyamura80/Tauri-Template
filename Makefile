@@ -81,6 +81,14 @@ setup: ## Set up dev environment from scratch (installs deps, copies .env, check
 	fi
 	@echo "$(GREEN)✅ Setup complete. Run 'make tauri-dev' to start.$(RESET)"
 
+onboard: ## Run the interactive onboarding CLI (rename, deps, env, hooks, media)
+	@echo "$(BLUE)🚀 Launching onboarding CLI...$(RESET)"
+	@cargo run -p onboard
+
+.PHONY: sync-agent-config
+sync-agent-config: ## Sync Claude <-> Codex skills & subagents (regenerates symlinks and .codex/agents/*.toml)
+	@bun run scripts/sync_agent_config.ts
+
 init: ## Initialize project (usage: make init name=my-project description="my description")
 	@if [ -z "$(name)" ] || [ -z "$(description)" ]; then \
 		echo "$(RED)Error: Both 'name' and 'description' parameters are required$(RESET)"; \
@@ -146,7 +154,7 @@ test_flaky: ## Repeat fast tests to detect flaky tests
 ########################################################
 
 ### Code Quality
-.PHONY: fmt lint knip audit link-check file_len_check sync-agent-config sync-agent-config-check ci
+.PHONY: fmt lint knip audit link-check file_len_check import_lint check_ai_writing sync-agent-config sync-agent-config-check ci
 
 fmt: ## Format code with Biome and rustfmt
 	@echo "$(YELLOW)✨ Formatting and linting with Biome...$(RESET)"
@@ -194,6 +202,16 @@ file_len_check: ## Check TS/RS files don't exceed max line count
 	@bun run scripts/check_file_length.ts
 	@echo "$(GREEN)✅ File length check completed.$(RESET)"
 
+import_lint: ## Assert core engine crate has no transport-crate dependency
+	@echo "$(YELLOW)🔍 Checking crate import boundaries...$(RESET)"
+	@bun run scripts/check_import_boundaries.ts
+	@echo "$(GREEN)✅ Import boundary check completed.$(RESET)"
+
+check_ai_writing: ## Check for AI-writing tells (em dash) in the repository
+	@echo "$(YELLOW)🔍 Checking AI writing patterns...$(RESET)"
+	@bun run scripts/check_ai_writing.ts
+	@echo "$(GREEN)✅ AI writing check completed.$(RESET)"
+
 sync-agent-config: ## Sync Claude <-> Codex skills & subagents (regenerates symlinks and .codex/agents/*.toml)
 	@bun run scripts/sync_agent_config.ts
 
@@ -202,7 +220,7 @@ sync-agent-config-check: ## Fail if Claude <-> Codex skill/subagent sync would p
 	@bun run scripts/sync_agent_config.ts --check
 	@echo "$(GREEN)✅ Sync drift check completed.$(RESET)"
 
-ci: fmt lint knip audit link-check test file_len_check sync-agent-config-check ## Run all CI checks
+ci: fmt lint knip audit link-check test file_len_check import_lint check_ai_writing sync-agent-config-check ## Run all CI checks
 	@echo "$(GREEN)✅ CI checks completed.$(RESET)"
 
 

@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-use dialoguer::{Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Input, Select};
 
 use super::StepResult;
 use crate::ui;
@@ -100,7 +100,10 @@ fn load_dotenv(path: &Path) -> Vec<(String, String)> {
                 } else {
                     v
                 };
-                (k.trim().to_string(), v.replace("\\\"", "\"").replace("\\\\", "\\"))
+                (
+                    k.trim().to_string(),
+                    v.replace("\\\"", "\"").replace("\\\\", "\\"),
+                )
             })
         })
         .filter(|(_, v)| !v.is_empty())

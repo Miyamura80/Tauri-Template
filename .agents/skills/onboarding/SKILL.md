@@ -12,7 +12,7 @@ or want to remove unused template systems.
 This template ships a Rust backend (`src-tauri/` host + `crates/engine` +
 `crates/cli`) and a Bun/React frontend (`src/`), wired together by Tauri. The
 onboarding entrypoints are the `Makefile` targets `make setup` and
-`make init` — read the `Makefile` before running anything so you know exactly
+`make init` - read the `Makefile` before running anything so you know exactly
 what each target rewrites.
 
 ## Workflow
@@ -40,7 +40,7 @@ what each target rewrites.
      generated media (banner/logo/icons).
 
 3. Set up the toolchain and environment first:
-   - `make setup` — verifies `rustup` and `bun` are installed, runs
+   - `make setup` - verifies `rustup` and `bun` are installed, runs
      `bun install`, and copies `.env.example` to `.env` if missing. Have the
      user fill in any API keys in `.env` before running the app.
 
@@ -56,8 +56,8 @@ what each target rewrites.
    `asset-gen`, which reads `APP__GEMINI_API_KEY` from the process environment
    and does not load `.env`, so the key must be exported in the shell first
    (e.g. `export APP__GEMINI_API_KEY=...` or `APP__GEMINI_API_KEY=... make logo`):
-   - `make banner` — writes `media/banner.png`.
-   - `make logo` — writes logo, icons, and favicon into `docs/public/`.
+   - `make banner` - writes `media/banner.png`.
+   - `make logo` - writes logo, icons, and favicon into `docs/public/`.
 
 6. Verify the selected shape:
    - Desktop app: `bun run tauri dev` launches the app (needs system WebView /
@@ -69,10 +69,10 @@ what each target rewrites.
      checks) once the scope is large.
 
 7. Prune systems the user opted out of, after confirming with them. There is no
-   automatic pruner in this template — remove by hand and keep the build green:
-   - Docs site — delete `docs/` and drop it from the `workspaces` array in
+   automatic pruner in this template - remove by hand and keep the build green:
+   - Docs site - delete `docs/` and drop it from the `workspaces` array in
      `package.json`.
-   - Headless CLI — if they only want the desktop app, remove `crates/cli` from
+   - Headless CLI - if they only want the desktop app, remove `crates/cli` from
      the workspace `Cargo.toml` `members` and delete the crate.
    - Release / translation workflows under `.github/workflows/` are not wired
      into any pruner; update or remove them to match the kept surfaces.
