@@ -13,7 +13,7 @@ Pushing a `v*` git tag triggers the [Release workflow](.github/workflows/release
 
 | Platform | Artifact(s) |
 |----------|-------------|
-| macOS    | `.dmg` (universal — Intel + Apple Silicon) |
+| macOS    | `.dmg` (universal - Intel + Apple Silicon) |
 | Windows  | `.exe` (NSIS installer) |
 | Linux    | `.AppImage`, `.deb` |
 
@@ -25,8 +25,8 @@ Pushing a `v*` git tag triggers the [Release workflow](.github/workflows/release
 
 Replace the placeholder values in `src-tauri/tauri.conf.json`:
 
-- `OWNER/REPO` — your GitHub org/username and repository name
-- `REPLACE_WITH_YOUR_TAURI_PUBLIC_KEY` — generated in step 2 below
+- `OWNER/REPO` - your GitHub org/username and repository name
+- `REPLACE_WITH_YOUR_TAURI_PUBLIC_KEY` - generated in step 2 below
 
 ### 2. Generate Tauri Signing Keys
 
@@ -71,13 +71,13 @@ Without signing, Windows SmartScreen will warn users. To sign:
 | `WINDOWS_CERTIFICATE` | Base64-encoded `.pfx` file |
 | `WINDOWS_CERTIFICATE_PASSWORD` | `.pfx` export password |
 
-Unsigned builds still work — users click through the SmartScreen warning once.
+Unsigned builds still work - users click through the SmartScreen warning once.
 
 ---
 
 ## Release Workflow
 
-### Step 1 — Bump versions
+### Step 1 - Bump versions
 
 ```bash
 make bump-version VERSION=1.2.0
@@ -88,7 +88,7 @@ This updates the version field in all three manifests atomically:
 - `src-tauri/Cargo.toml`
 - `package.json`
 
-### Step 2 — Commit and tag
+### Step 2 - Commit and tag
 
 ```bash
 git add src-tauri/tauri.conf.json src-tauri/Cargo.toml package.json Cargo.lock
@@ -97,12 +97,12 @@ git tag v1.2.0
 git push origin main --tags
 ```
 
-### Step 3 — Watch CI
+### Step 3 - Watch CI
 
 The [Release workflow](.github/workflows/release.yml) triggers automatically.
 Check the **Actions** tab for build progress. All three platforms build in parallel.
 
-### Step 4 — Verify the release
+### Step 4 - Verify the release
 
 Once CI completes, visit **Releases** on GitHub:
 - Confirm all platform installers are attached
@@ -115,17 +115,17 @@ Once CI completes, visit **Releases** on GitHub:
 
 The frontend uses `@tauri-apps/plugin-updater` (the JS API) to handle the full
 check → download → install flow directly from React. There is no Rust-side
-event emission — the `useAppUpdate` hook in `src/hooks/useAppUpdate.ts` manages
+event emission - the `useAppUpdate` hook in `src/hooks/useAppUpdate.ts` manages
 the entire lifecycle.
 
 On startup (after a 3-second delay), the hook calls `check()` from the plugin.
 If a newer version is found, an in-app banner appears with three options:
 
-- **Update Now** — downloads and installs the update, showing a progress bar.
+- **Update Now** - downloads and installs the update, showing a progress bar.
   The app auto-restarts once installation completes.
-- **Later** — dismisses the banner for the current session. It will reappear on
+- **Later** - dismisses the banner for the current session. It will reappear on
   the next launch.
-- **Skip This Version** — persists the version to `localStorage`, permanently
+- **Skip This Version** - persists the version to `localStorage`, permanently
   suppressing the notification for that specific version.
 
 The plugin fetches the endpoint configured in `src-tauri/tauri.conf.json`:
@@ -143,7 +143,7 @@ verified against your public key before being applied.
 
 ## Testing the Updater Locally
 
-The updater **cannot be tested in `tauri dev` mode** — it requires signed
+The updater **cannot be tested in `tauri dev` mode** - it requires signed
 production builds. To test end-to-end:
 
 1. Build a signed release with an older version:

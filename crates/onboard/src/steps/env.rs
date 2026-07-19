@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use console::Style;
-use dialoguer::{Input, MultiSelect, Password, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Input, MultiSelect, Password};
 
 use super::StepResult;
 use crate::ui;
@@ -83,15 +83,20 @@ pub fn run(project_root: &Path) -> StepResult {
             .unwrap_or_default()
             .lines()
             .filter(|l| !l.trim().starts_with('#') && l.contains('='))
-            .filter_map(|l| l.split_once('=').map(|(k, v)| {
-                let v = v.trim();
-                let v = if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
-                    &v[1..v.len() - 1]
-                } else {
-                    v
-                };
-                (k.trim().to_string(), v.replace("\\\"", "\"").replace("\\\\", "\\"))
-            }))
+            .filter_map(|l| {
+                l.split_once('=').map(|(k, v)| {
+                    let v = v.trim();
+                    let v = if v.starts_with('"') && v.ends_with('"') && v.len() >= 2 {
+                        &v[1..v.len() - 1]
+                    } else {
+                        v
+                    };
+                    (
+                        k.trim().to_string(),
+                        v.replace("\\\"", "\"").replace("\\\\", "\\"),
+                    )
+                })
+            })
             .collect()
     } else {
         BTreeMap::new()
@@ -100,12 +105,7 @@ pub fn run(project_root: &Path) -> StepResult {
     // Show current state
     let set_count = entries
         .iter()
-        .filter(|e| {
-            existing
-                .get(&e.key)
-                .map(|v| !v.is_empty())
-                .unwrap_or(false)
-        })
+        .filter(|e| existing.get(&e.key).map(|v| !v.is_empty()).unwrap_or(false))
         .count();
     println!();
     println!(
@@ -131,7 +131,7 @@ pub fn run(project_root: &Path) -> StepResult {
             println!(
                 "    {} {} = {}",
                 highlight.apply_to("\u{2714}"),
-                highlight.apply_to(format!(" {} ", &entry.key)),
+                highlight.apply_to(format!(" {} ", entry.key)),
                 mask_value(&current)
             );
         }
@@ -181,7 +181,7 @@ pub fn run(project_root: &Path) -> StepResult {
 
         let value = if entry.is_secret {
             match Password::with_theme(&ColorfulTheme::default())
-                .with_prompt(&format!("{} (leave empty to keep current)", entry.key))
+                .with_prompt(format!("{} (leave empty to keep current)", entry.key))
                 .allow_empty_password(true)
                 .interact()
             {
@@ -223,7 +223,11 @@ pub fn run(project_root: &Path) -> StepResult {
                     // Comment out unconfigured vars
                     output.push_str(&format!("# {}=\n", key));
                 } else {
-                    output.push_str(&format!("{}=\"{}\"\n", key, val.replace('\\', "\\\\").replace('"', "\\\"")));
+                    output.push_str(&format!(
+                        "{}=\"{}\"\n",
+                        key,
+                        val.replace('\\', "\\\\").replace('"', "\\\"")
+                    ));
                 }
             } else {
                 output.push_str(&format!("# {}=\n", key));

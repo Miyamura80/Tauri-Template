@@ -25,7 +25,7 @@ cargo clippy            # Run Rust linter
 ## Architecture
 
 - **src/** - Tauri frontend (React + TypeScript + Vite)
-- **src-tauri/** - Tauri host (Rust) — wraps engine commands as Tauri handlers
+- **src-tauri/** - Tauri host (Rust) - wraps engine commands as Tauri handlers
 - **crates/engine/** - Platform-agnostic backend logic (no Tauri dependency)
 - **crates/cli/** - Headless CLI (`appctl`) for testing engine logic
 - **docs/** - Documentation (Next.js app)
@@ -73,7 +73,6 @@ Structure as: `init()` → `continue(id)` → `cleanup(id)`
 - Folder-size CI failure → spawn subagent `.claude/agents/folder-refactor-advisor.md`.
 
 ## Git Workflow
-- **Review**: Always trigger Greptile review MCP before pushing a PR and resolve any branch issues. If the Greptile MCP is not available, explicitly inform the user.
 - **Protected Branch**: `main` is protected. Do not push directly to `main`. Use PRs.
 - **Merge Strategy**: Squash and merge.
 - **Pre-commit CI gate**: Always run `make ci` before committing any changes. Ensure it passes with zero errors. Do not commit if `make ci` fails - fix all issues first, then commit.
@@ -89,7 +88,7 @@ Operational runbooks live in `docs/runbooks/`. After resolving a difficult issue
 
 Docs under `docs/content/` are auto-translated by the **Jules Translation Sync**
 workflow (`.github/workflows/jules-sync-translations.yml`). Do NOT manually
-translate doc files — edit the English source and the workflow will update all
+translate doc files - edit the English source and the workflow will update all
 locales (`zh`, `es`, `ja`).
 
 See [`docs/translation-guide.md`](docs/translation-guide.md) for the full
