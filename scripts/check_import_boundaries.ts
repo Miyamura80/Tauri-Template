@@ -22,7 +22,9 @@ const CORE_MANIFEST = join(REPO, "crates", "engine", "Cargo.toml");
 // crate/package name as it would appear in a `[dependencies]` key.
 const FORBIDDEN_DEPS: Array<{ name: string; label: string }> = [
 	{ name: "appctl", label: "crates/cli (appctl CLI transport)" },
+	{ name: "cli", label: "crates/cli (CLI transport, by dir name)" },
 	{ name: "tauri-app", label: "src-tauri (Tauri host transport)" },
+	{ name: "src-tauri", label: "src-tauri (Tauri host transport, by dir name)" },
 	{ name: "tauri", label: "the Tauri framework (GUI transport)" },
 	{ name: "tauri-build", label: "the Tauri build framework (GUI transport)" },
 ];
@@ -37,10 +39,21 @@ function collectDependencyNames(manifest: string): Set<string> {
 	const deps = new Set<string>();
 	const lines = manifest.split("\n");
 	let inDepsSection = false;
+	// True while inside a `[dependencies.foo]` (or target-conditional) subtable,
+	// so we can read a renaming `package = "X"` line out of it.
+	let inDepSubtable = false;
 
 	const isDepSectionHeader = (header: string): boolean =>
 		/^(dependencies|dev-dependencies|build-dependencies)$/.test(header) ||
 		/(^|\.)(dependencies|dev-dependencies|build-dependencies)$/.test(header);
+
+	// Pull the aliased crate out of a `package = "X"` assignment. A renamed dep
+	// like `ui = { package = "tauri" }` records the key `ui` but really pulls in
+	// `tauri`, so the effective package name must be checked too.
+	const addPackageAlias = (line: string): void => {
+		const m = line.match(/(?:^|[{,]\s*)package\s*=\s*"([^"]+)"/);
+		if (m) deps.add(m[1].trim());
+	};
 
 	for (const raw of lines) {
 		const line = raw.trim();
@@ -50,15 +63,24 @@ function collectDependencyNames(manifest: string): Set<string> {
 		if (tableMatch) {
 			const header = tableMatch[1].trim();
 			// A `[dependencies.foo]` table both enters a deps section AND names `foo`.
+			// `target\..*\.` also covers `[target.'cfg(...)'.dependencies.foo]`.
 			const nested = header.match(
-				/^(?:target\.[^.]+\.)?(?:dependencies|dev-dependencies|build-dependencies)\.(.+)$/,
+				/^(?:target\..*\.)?(?:dependencies|dev-dependencies|build-dependencies)\.(.+)$/,
 			);
 			if (nested) {
 				deps.add(nested[1].trim());
 				inDepsSection = false;
+				inDepSubtable = true;
 				continue;
 			}
 			inDepsSection = isDepSectionHeader(header);
+			inDepSubtable = false;
+			continue;
+		}
+
+		// Inside a `[dependencies.foo]` subtable: only a `package = "X"` rename matters.
+		if (inDepSubtable) {
+			addPackageAlias(line);
 			continue;
 		}
 
@@ -68,6 +90,9 @@ function collectDependencyNames(manifest: string): Set<string> {
 			/^([A-Za-z0-9_-]+)\s*(?:\.[A-Za-z0-9_-]+)?\s*=/,
 		);
 		if (keyMatch) deps.add(keyMatch[1].trim());
+
+		// Inline table form: `ui = { package = "tauri", version = "..." }`.
+		addPackageAlias(line);
 	}
 	return deps;
 }

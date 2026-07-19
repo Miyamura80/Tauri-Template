@@ -10,7 +10,6 @@ name = "onboard"
 path = "src/main.rs"
 
 [dependencies]
-anyhow = "1"
 console = "0.15"
 dialoguer = "0.12"
 

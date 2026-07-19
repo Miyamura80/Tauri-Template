@@ -5,18 +5,8 @@ use std::process::Command;
 
 use dialoguer::{theme::ColorfulTheme, Confirm};
 
-use super::StepResult;
+use super::{have, StepResult};
 use crate::ui;
-
-fn have(bin: &str) -> bool {
-    Command::new(bin)
-        .arg("--version")
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
-}
 
 fn run_cmd(project_root: &Path, program: &str, args: &[&str]) -> Result<(), String> {
     let status = Command::new(program)

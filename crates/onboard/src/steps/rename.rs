@@ -66,6 +66,10 @@ pub fn rename_tauri_conf(content: &str, new_name: &str, identifier: &str) -> Str
             "\"identifier\": \"com.eito.tauri-app\"",
             &format!("\"identifier\": \"{identifier}\""),
         )
+        .replace(
+            "\"title\": \"tauri-app\"",
+            &format!("\"title\": \"{new_name}\""),
+        )
 }
 
 /// Rename the crate in `src-tauri/Cargo.toml`. Updates both `name` and
@@ -232,10 +236,11 @@ mod tests {
 
     #[test]
     fn tauri_conf_rename() {
-        let src = "\"productName\": \"tauri-app\",\n\"identifier\": \"com.eito.tauri-app\",";
+        let src = "\"productName\": \"tauri-app\",\n\"identifier\": \"com.eito.tauri-app\",\n\"title\": \"tauri-app\",";
         let out = rename_tauri_conf(src, "my-app", "com.me.my-app");
         assert!(out.contains("\"productName\": \"my-app\""));
         assert!(out.contains("\"identifier\": \"com.me.my-app\""));
+        assert!(out.contains("\"title\": \"my-app\""));
     }
 
     #[test]

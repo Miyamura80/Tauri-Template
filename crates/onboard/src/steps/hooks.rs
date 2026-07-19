@@ -5,18 +5,8 @@ use std::process::Command;
 
 use dialoguer::{theme::ColorfulTheme, Confirm};
 
-use super::StepResult;
+use super::{have, StepResult};
 use crate::ui;
-
-fn have(bin: &str) -> bool {
-    Command::new(bin)
-        .arg("--version")
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
-}
 
 pub fn run(project_root: &Path) -> StepResult {
     ui::print_step(4, "Enable git hooks (prek)");
