@@ -1,130 +1,224 @@
 #!/usr/bin/env bun
 /**
- * Crate-boundary check.
+ * Crate-boundary import lint.
  *
- * The core crate `crates/engine` is platform-agnostic and MUST NOT depend on
- * any transport crate. Transports (the `appctl` CLI in `crates/cli`, the Tauri
- * host in `src-tauri`) depend on `engine`, never the reverse. This asserts that
- * dependency direction by parsing the Cargo.toml manifests. Deterministic, no
- * network, no cargo invocation.
+ * The platform-agnostic core crate `crates/engine` must have NO dependency on
+ * any transport crate. Transports are the `appctl` CLI in `crates/cli` and the
+ * Tauri host in `src-tauri`; transports depend on `engine`, never the reverse.
+ * A dependency edge from engine -> a transport crate (or onto the Tauri
+ * framework itself) would invert the layering described in CLAUDE.md.
+ *
+ * Detection is a deterministic Cargo.toml text parse -- no network, no cargo
+ * invocation. Two independent signals count as a violation:
+ *
+ *   1. A dependency that resolves to a forbidden transport PACKAGE name, matched
+ *      by real package name (a bare dependency key, an inline-table
+ *      `package = "X"` rename, or a `[dependencies.foo]` subtable key/rename).
+ *      A third-party crate that merely shares a transport DIRECTORY name (e.g.
+ *      an unrelated crate literally named `cli`) is NOT a violation.
+ *   2. A `path = "..."` dependency whose final path segment points into a
+ *      transport crate directory (`../cli`, `../src-tauri`), regardless of key.
+ *
+ * Both TOML quote styles (`"` and `'`) are handled everywhere.
  */
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const REPO = join(import.meta.dir, "..");
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-// The core crate and the manifest that must stay free of transport deps.
-const CORE_CRATE = "engine";
-const CORE_MANIFEST = join(REPO, "crates", "engine", "Cargo.toml");
+// The core crate that must stay transport-free.
+const CORE_CRATE = "crates/engine";
 
-// Transport crates the core is forbidden from depending on. `name` is the
-// crate/package name as it would appear in a `[dependencies]` key.
-const FORBIDDEN_DEPS: Array<{ name: string; label: string }> = [
-	{ name: "appctl", label: "crates/cli (appctl CLI transport)" },
-	{ name: "cli", label: "crates/cli (CLI transport, by dir name)" },
-	{ name: "tauri-app", label: "src-tauri (Tauri host transport)" },
-	{ name: "src-tauri", label: "src-tauri (Tauri host transport, by dir name)" },
-	{ name: "tauri", label: "the Tauri framework (GUI transport)" },
-	{ name: "tauri-build", label: "the Tauri build framework (GUI transport)" },
+// Forbidden transport PACKAGE names. Matched against real package names only
+// (dependency key, `package = "X"` rename, or subtable key). Do NOT list bare
+// directory names here -- an unrelated crate named `cli` (or `src-tauri`) must
+// not trip the gate.
+const FORBIDDEN_PACKAGES: string[] = [
+	"appctl",
+	"tauri-app",
+	"tauri",
+	"tauri-build",
 ];
 
-/**
- * Collect the dependency keys from a Cargo.toml. Naive but sufficient: scan
- * every `[dependencies]`, `[dev-dependencies]`, `[build-dependencies]`, and
- * their `[target.*]` variants, then read `key = ...` and `key.path = ...`
- * lines plus any `dep = { ... }` table headers under those sections.
- */
-function collectDependencyNames(manifest: string): Set<string> {
-	const deps = new Set<string>();
-	const lines = manifest.split("\n");
-	let inDepsSection = false;
-	// True while inside a `[dependencies.foo]` (or target-conditional) subtable,
-	// so we can read a renaming `package = "X"` line out of it.
+// Final path segments that identify a transport crate directory. Any
+// `path = "..."` whose last segment matches is a violation regardless of key.
+const FORBIDDEN_PATH_SEGMENTS: string[] = ["cli", "src-tauri"];
+
+// A plain dependency table: `[dependencies]`, `[dev-dependencies]`,
+// `[build-dependencies]`, and their `[target.'cfg(...)'.<table>]` variants.
+const DEP_TABLE_RE =
+	/^\[(?:target\..*\.)?(?:dependencies|dev-dependencies|build-dependencies)\]\s*$/;
+// A `[dependencies.foo]` (or target-conditional) subtable header; captures `foo`.
+const DEP_SUBTABLE_RE =
+	/^\[(?:target\..*\.)?(?:dependencies|dev-dependencies|build-dependencies)\.([A-Za-z0-9_-]+)\]\s*$/;
+const TABLE_RE = /^\[/;
+// A dependency line: `key = ...` or `key.feature = ...`. Captures the crate key.
+const DEP_KEY_RE = /^([A-Za-z0-9_-]+)(?:\s*\.\s*[A-Za-z0-9_-]+)?\s*=/;
+// A renaming `package = "X"` / `package = 'X'` assignment, either standalone (in
+// a subtable body) or inside an inline table (`foo = { package = "X", ... }`).
+const PACKAGE_RE = /(?:^|[{,]\s*)package\s*=\s*(?:"([^"]+)"|'([^']+)')/;
+// A `path = "..."` / `path = '...'` assignment. Captures the path value.
+const PATH_RE = /(?:^|[{,]\s*)path\s*=\s*(?:"([^"]+)"|'([^']+)')/;
+
+interface Violation {
+	line: number;
+	text: string;
+	reason: string;
+}
+
+const forbiddenPackages = new Set(FORBIDDEN_PACKAGES);
+
+// Final segment of a path value, trailing slash stripped (`../cli/` -> `cli`).
+function finalSegment(pathValue: string): string {
+	const trimmed = pathValue.replace(/\/+$/, "");
+	const idx = trimmed.lastIndexOf("/");
+	return idx === -1 ? trimmed : trimmed.slice(idx + 1);
+}
+
+// Pull the aliased package out of a `package = "X"`/`'X'` line, if present.
+function packageAlias(line: string): string | undefined {
+	const m = line.match(PACKAGE_RE);
+	if (!m) return undefined;
+	return (m[1] ?? m[2]).trim();
+}
+
+// Pull the final segment out of a `path = "..."`/`'...'` line, if it points at
+// a forbidden transport directory.
+function forbiddenPathSegment(line: string): string | undefined {
+	const m = line.match(PATH_RE);
+	if (!m) return undefined;
+	const seg = finalSegment((m[1] ?? m[2]).trim());
+	return FORBIDDEN_PATH_SEGMENTS.includes(seg) ? seg : undefined;
+}
+
+function checkManifest(manifestPath: string): Violation[] {
+	const violations: Violation[] = [];
+	const text = readFileSync(manifestPath, "utf-8");
+	const lines = text.split("\n");
+
+	let inDepTable = false;
+	// True while inside a `[dependencies.foo]` subtable, whose body may carry a
+	// `package = "X"` rename and/or a `path = "..."` onto a transport dir.
 	let inDepSubtable = false;
 
-	const isDepSectionHeader = (header: string): boolean =>
-		/^(dependencies|dev-dependencies|build-dependencies)$/.test(header) ||
-		/(^|\.)(dependencies|dev-dependencies|build-dependencies)$/.test(header);
+	for (let i = 0; i < lines.length; i++) {
+		const raw = lines[i];
+		const line = raw.replace(/#.*$/, "").trim();
+		if (line === "") continue;
 
-	// Pull the aliased crate out of a `package = "X"` assignment. A renamed dep
-	// like `ui = { package = "tauri" }` records the key `ui` but really pulls in
-	// `tauri`, so the effective package name must be checked too.
-	const addPackageAlias = (line: string): void => {
-		const m = line.match(/(?:^|[{,]\s*)package\s*=\s*"([^"]+)"/);
-		if (m) deps.add(m[1].trim());
-	};
-
-	for (const raw of lines) {
-		const line = raw.trim();
-		if (line.startsWith("#") || line === "") continue;
-
-		const tableMatch = line.match(/^\[([^\]]+)\]$/);
-		if (tableMatch) {
-			const header = tableMatch[1].trim();
-			// A `[dependencies.foo]` table both enters a deps section AND names `foo`.
-			// `target\..*\.` also covers `[target.'cfg(...)'.dependencies.foo]`.
-			const nested = header.match(
-				/^(?:target\..*\.)?(?:dependencies|dev-dependencies|build-dependencies)\.(.+)$/,
-			);
-			if (nested) {
-				deps.add(nested[1].trim());
-				inDepsSection = false;
-				inDepSubtable = true;
-				continue;
+		// `[dependencies.foo]` subtable header: `foo` itself may be a forbidden
+		// package, and its body (scanned below) may rename or path onto one.
+		const sub = line.match(DEP_SUBTABLE_RE);
+		if (sub) {
+			inDepTable = false;
+			inDepSubtable = true;
+			if (forbiddenPackages.has(sub[1])) {
+				violations.push({
+					line: i + 1,
+					text: raw.trim(),
+					reason: `depends on transport package '${sub[1]}'`,
+				});
 			}
-			inDepsSection = isDepSectionHeader(header);
+			continue;
+		}
+		if (DEP_TABLE_RE.test(line)) {
+			inDepTable = true;
+			inDepSubtable = false;
+			continue;
+		}
+		if (TABLE_RE.test(line)) {
+			inDepTable = false;
 			inDepSubtable = false;
 			continue;
 		}
 
-		// Inside a `[dependencies.foo]` subtable: only a `package = "X"` rename matters.
+		// Subtable body: check BOTH a `package = "X"` rename AND a `path = "..."`
+		// (the two are not mutually exclusive; never early-`continue` between them).
 		if (inDepSubtable) {
-			addPackageAlias(line);
+			const alias = packageAlias(line);
+			if (alias && forbiddenPackages.has(alias)) {
+				violations.push({
+					line: i + 1,
+					text: raw.trim(),
+					reason: `renamed dependency pulls in transport package '${alias}'`,
+				});
+			}
+			const seg = forbiddenPathSegment(line);
+			if (seg) {
+				violations.push({
+					line: i + 1,
+					text: raw.trim(),
+					reason: `path dependency onto transport crate dir '${seg}'`,
+				});
+			}
+			continue;
+		}
+		if (!inDepTable) continue;
+
+		// Direct dependency key: `appctl = ...`, `tauri.workspace = ...`.
+		const key = line.match(DEP_KEY_RE);
+		if (key && forbiddenPackages.has(key[1])) {
+			violations.push({
+				line: i + 1,
+				text: raw.trim(),
+				reason: `depends on transport package '${key[1]}'`,
+			});
 			continue;
 		}
 
-		if (!inDepsSection) continue;
+		// Inline-table rename: `ui = { package = "tauri", version = "..." }`.
+		const alias = packageAlias(line);
+		if (alias && forbiddenPackages.has(alias)) {
+			violations.push({
+				line: i + 1,
+				text: raw.trim(),
+				reason: `renamed dependency pulls in transport package '${alias}'`,
+			});
+			continue;
+		}
 
-		const keyMatch = line.match(
-			/^([A-Za-z0-9_-]+)\s*(?:\.[A-Za-z0-9_-]+)?\s*=/,
-		);
-		if (keyMatch) deps.add(keyMatch[1].trim());
-
-		// Inline table form: `ui = { package = "tauri", version = "..." }`.
-		addPackageAlias(line);
+		// Path dependency onto a transport crate dir: `ui = { path = "../cli" }`.
+		const seg = forbiddenPathSegment(line);
+		if (seg) {
+			violations.push({
+				line: i + 1,
+				text: raw.trim(),
+				reason: `path dependency onto transport crate dir '${seg}'`,
+			});
+		}
 	}
-	return deps;
+	return violations;
 }
 
 function main(): number {
-	let manifest: string;
-	try {
-		manifest = readFileSync(CORE_MANIFEST, "utf-8");
-	} catch (e) {
-		console.error(`Could not read ${CORE_MANIFEST}: ${e}`);
+	const manifest = join(REPO, CORE_CRATE, "Cargo.toml");
+	if (!existsSync(manifest)) {
+		console.error(
+			`import_lint: core crate manifest not found at ${CORE_CRATE}/Cargo.toml`,
+		);
 		return 1;
 	}
 
-	const deps = collectDependencyNames(manifest);
-	const violations = FORBIDDEN_DEPS.filter((f) => deps.has(f.name));
-
+	const violations = checkManifest(manifest);
 	if (violations.length > 0) {
 		console.error(
-			`Import boundary violation: core crate \`${CORE_CRATE}\` (crates/engine/Cargo.toml) ` +
-				`must not depend on transport crates.`,
+			`import_lint FAILED: '${CORE_CRATE}' must not depend on any transport crate.`,
 		);
 		for (const v of violations) {
-			console.error(`  forbidden dependency: \`${v.name}\` -> ${v.label}`);
+			console.error(
+				`  ${CORE_CRATE}/Cargo.toml:${v.line}: ${v.text}  (${v.reason})`,
+			);
 		}
 		console.error(
-			"Transports depend on the engine, never the reverse. Move shared logic into the engine.",
+			"The engine core is transport-agnostic; move transport-specific code into crates/cli or src-tauri.",
 		);
 		return 1;
 	}
 
 	console.log(
-		`Import boundary check passed: \`${CORE_CRATE}\` has no transport-crate dependency.`,
+		`import_lint passed: '${CORE_CRATE}' has no transport-crate dependencies.`,
 	);
 	return 0;
 }
