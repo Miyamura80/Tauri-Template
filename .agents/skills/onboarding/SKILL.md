@@ -52,8 +52,10 @@ what each target rewrites.
    - Confirm the resolved name and identifier with the user first; the target
      edits tracked manifests in place.
 
-5. Generate branding assets only if the user wants them (both need
-   `APP__GEMINI_API_KEY` in `.env`):
+5. Generate branding assets only if the user wants them. Both targets run
+   `asset-gen`, which reads `APP__GEMINI_API_KEY` from the process environment
+   and does not load `.env`, so the key must be exported in the shell first
+   (e.g. `export APP__GEMINI_API_KEY=...` or `APP__GEMINI_API_KEY=... make logo`):
    - `make banner` — writes `media/banner.png`.
    - `make logo` — writes logo, icons, and favicon into `docs/public/`.
 

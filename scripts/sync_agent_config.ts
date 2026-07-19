@@ -38,19 +38,12 @@ const CLAUDE_ONLY_KEYS = new Set([
 	"disable-model-invocation",
 ]);
 
-const SHARED_SKILL_FORBIDDEN_KEYS = new Set([
-	"allowed-tools",
-	"disable-model-invocation",
-	"user-invocable",
-	"context",
-	"agent",
-	"model",
-	"effort",
-	"hooks",
-	"paths",
-	"shell",
-	"argument-hint",
-]);
+// Shared skills must be readable by both Claude and Codex, so their frontmatter
+// is restricted to the narrow cross-tool overlap: `name` and `description` only.
+const SHARED_SKILL_ALLOWED_KEYS = new Set(["name", "description"]);
+const SKILL_NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SKILL_NAME_MAX = 64;
+const SKILL_DESCRIPTION_MAX = 250;
 
 const SHARED_SKILL_FORBIDDEN_BODY_PATTERNS: [RegExp, string][] = [
 	[/\$ARGUMENTS\b/, "$ARGUMENTS substitution"],
@@ -82,23 +75,42 @@ function parseMd(path: string): { meta: Frontmatter; body: string } {
 	return { meta, body };
 }
 
+function uEscape(cp: number): string {
+	return `\\u${cp.toString(16).padStart(4, "0").toUpperCase()}`;
+}
+
+// TOML forbids raw control chars in strings. In basic (single-line) strings the
+// only ones expressible without \uXXXX are the named escapes \t \r \n; every
+// other control char (U+0000-U+001F, U+007F) must be \uXXXX-escaped. In
+// multiline strings tab/newline/CR are legal literally, so only the remainder
+// need escaping. This shared class covers everything except \t (U+0009),
+// \n (U+000A), \r (U+000D).
+// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control-char escaping
+const OTHER_CONTROL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
 function tomlBasicString(s: string): string {
-	// Only used for `name` and `description`. Frontmatter rules already forbid
-	// control chars and newlines in these, so plain escape of backslash, quote,
-	// tab, and the newline pair is sufficient.
+	// Used for `name` and `description`. Escape backslash and quote, express the
+	// named control chars, then \uXXXX-escape any remaining TOML-forbidden
+	// control char so the emitted TOML is always valid even on hostile input.
 	const escaped = s
 		.replace(/\\/g, "\\\\")
 		.replace(/"/g, '\\"')
 		.replace(/\t/g, "\\t")
 		.replace(/\r/g, "\\r")
-		.replace(/\n/g, "\\n");
+		.replace(/\n/g, "\\n")
+		.replace(OTHER_CONTROL_RE, (c) => uEscape(c.codePointAt(0) ?? 0));
 	return `"${escaped}"`;
 }
 
 function tomlMultilineString(s: string): string {
 	// Triple-quoted; escape sequences of 3+ double quotes so the string can't
-	// close prematurely. A literal `"""` becomes `""\"`.
-	const escaped = s.replace(/\\/g, "\\\\").replace(/"""/g, '""\\"');
+	// close prematurely. A literal `"""` becomes `""\"`. Tab/newline/CR stay
+	// literal (legal in multiline strings); every other TOML-forbidden control
+	// char (U+000B, U+000C, ...) is \uXXXX-escaped.
+	const escaped = s
+		.replace(/\\/g, "\\\\")
+		.replace(/"""/g, '""\\"')
+		.replace(OTHER_CONTROL_RE, (c) => uEscape(c.codePointAt(0) ?? 0));
 	// Leading newline right after the opening """ is stripped by TOML, so add one
 	// so the content starts on its own line for readability.
 	return `"""\n${escaped}"""`;
@@ -178,12 +190,14 @@ function validateSharedSkill(skillDir: string): string[] {
 	}
 	const { meta, body } = parsed;
 	const errs: string[] = [];
+	// Frontmatter allowlist: reject any key outside {name, description}. This
+	// subsumes the old Claude-only denylist and also blocks unknown keys.
 	const badKeys = Object.keys(meta)
-		.filter((k) => SHARED_SKILL_FORBIDDEN_KEYS.has(k))
+		.filter((k) => !SHARED_SKILL_ALLOWED_KEYS.has(k))
 		.sort();
 	if (badKeys.length > 0) {
 		errs.push(
-			`${rel(skillMd)}: Claude-only frontmatter keys in shared skill: [${badKeys.map((k) => `'${k}'`).join(", ")}]`,
+			`${rel(skillMd)}: disallowed frontmatter keys in shared skill (only 'name', 'description' allowed): [${badKeys.map((k) => `'${k}'`).join(", ")}]`,
 		);
 	}
 	for (const [pat, label] of SHARED_SKILL_RAW_BODY_PATTERNS) {
@@ -195,9 +209,28 @@ function validateSharedSkill(skillDir: string): string[] {
 		if (pat.test(scan))
 			errs.push(`${rel(skillMd)}: body uses Claude-only feature: ${label}`);
 	}
-	if (!meta.name) errs.push(`${rel(skillMd)}: missing \`name\` in frontmatter`);
-	if (!meta.description)
+	if (meta.name === undefined || meta.name === null) {
+		errs.push(`${rel(skillMd)}: missing \`name\` in frontmatter`);
+	} else {
+		const name = String(meta.name);
+		if (name.length > SKILL_NAME_MAX)
+			errs.push(
+				`${rel(skillMd)}: \`name\` exceeds ${SKILL_NAME_MAX} chars (${name.length})`,
+			);
+		if (!SKILL_NAME_RE.test(name))
+			errs.push(
+				`${rel(skillMd)}: \`name\` must be a lowercase-hyphen slug: '${name}'`,
+			);
+	}
+	if (meta.description === undefined || meta.description === null) {
 		errs.push(`${rel(skillMd)}: missing \`description\` in frontmatter`);
+	} else if (typeof meta.description !== "string") {
+		errs.push(`${rel(skillMd)}: \`description\` must be a string`);
+	} else if (meta.description.length > SKILL_DESCRIPTION_MAX) {
+		errs.push(
+			`${rel(skillMd)}: \`description\` exceeds ${SKILL_DESCRIPTION_MAX} chars (${meta.description.length})`,
+		);
+	}
 	return errs;
 }
 
@@ -269,6 +302,21 @@ function syncSkillSymlinks(): string[] {
 	return changes;
 }
 
+function assertNotSymlink(path: string): void {
+	let st: ReturnType<typeof lstatSync>;
+	try {
+		st = lstatSync(path);
+	} catch {
+		return; // does not exist yet -- safe to create as a regular file
+	}
+	if (st.isSymbolicLink()) {
+		die(
+			`ERROR: ${rel(path)} is a symlink; refusing to read or write through it. ` +
+				"Remove it and re-run sync-agent-config.",
+		);
+	}
+}
+
 function syncAgents(): string[] {
 	const changes: string[] = [];
 	mkdirSync(CODEX_AGENTS, { recursive: true });
@@ -283,6 +331,9 @@ function syncAgents(): string[] {
 		const { meta, body } = parseMd(mdPath);
 		const tomlName = `${mdName.slice(0, -3)}.toml`;
 		const tomlPath = join(CODEX_AGENTS, tomlName);
+		// Never read or write through a symlinked TOML -- a planted symlink could
+		// redirect the write outside .codex/agents/.
+		assertNotSymlink(tomlPath);
 		const fresh = renderToml(meta, body, rel(mdPath));
 		const current = existsSync(tomlPath)
 			? readFileSync(tomlPath, "utf-8")

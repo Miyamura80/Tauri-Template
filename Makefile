@@ -146,7 +146,7 @@ test_flaky: ## Repeat fast tests to detect flaky tests
 ########################################################
 
 ### Code Quality
-.PHONY: fmt lint knip audit link-check file_len_check sync-agent-config ci
+.PHONY: fmt lint knip audit link-check file_len_check sync-agent-config sync-agent-config-check ci
 
 fmt: ## Format code with Biome and rustfmt
 	@echo "$(YELLOW)✨ Formatting and linting with Biome...$(RESET)"
@@ -197,7 +197,12 @@ file_len_check: ## Check TS/RS files don't exceed max line count
 sync-agent-config: ## Sync Claude <-> Codex skills & subagents (regenerates symlinks and .codex/agents/*.toml)
 	@bun run scripts/sync_agent_config.ts
 
-ci: fmt lint knip audit link-check test file_len_check ## Run all CI checks
+sync-agent-config-check: ## Fail if Claude <-> Codex skill/subagent sync would produce drift
+	@echo "$(YELLOW)🔍 Checking Claude <-> Codex sync drift...$(RESET)"
+	@bun run scripts/sync_agent_config.ts --check
+	@echo "$(GREEN)✅ Sync drift check completed.$(RESET)"
+
+ci: fmt lint knip audit link-check test file_len_check sync-agent-config-check ## Run all CI checks
 	@echo "$(GREEN)✅ CI checks completed.$(RESET)"
 
 

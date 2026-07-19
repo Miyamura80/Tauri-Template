@@ -64,7 +64,7 @@ Rules:
 ## Tooling
 
 - `make sync-agent-config` - idempotent. Creates missing `.claude/skills/` symlinks for every shared skill under `.agents/skills/`, regenerates `.codex/agents/*.toml` from `.claude/agents/*.md`, auto-prunes dangling symlinks and orphan TOMLs silently.
-- Pre-commit: [`prek`](https://prek.j178.dev/installation/), configured in `prek.toml` at repo root. Register once per clone with `prek install`. Runs `make sync-agent-config` then fails the commit if it produced drift.
+- Pre-commit: [`prek`](https://prek.j178.dev/installation/), configured in `prek.toml` at repo root. Register once per clone with `prek install`. The hook runs `bun run scripts/sync_agent_config.ts --check`, which regenerates in-memory and fails the commit if the committed symlinks or `.codex/agents/*.toml` would drift (rather than rewriting them). Run `make sync-agent-config` to apply the fixes, then stage and commit again.
 - TypeScript script runs via `bun run scripts/sync_agent_config.ts`; deps (`yaml`) are in `package.json`.
 
 ## When adding a new skill or subagent
