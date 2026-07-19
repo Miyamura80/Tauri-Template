@@ -94,6 +94,8 @@ Claude Code skills live in `.claude/skills/`. Invoke them with `/skill-name`.
 |-------|-------------|
 | `/update-backend` | Guide for Rust backend changes - engine crate, Tauri commands, CLI harness, and testing patterns |
 | `/code-quality` | Run formatting and linting checks (Biome + Clippy) |
+| `/onboarding` | Turn this template into a real project - interview, run `make setup`/`make init`, prune unused systems |
+| `/thermo-nuclear-code-quality-review` | Extremely strict maintainability audit (abstraction quality, 1k-line rule, spaghetti) |
 | `/prd` | Generate a Product Requirements Document for a new feature |
 | `/ralph` | Convert a PRD to `prd.json` format for the Ralph autonomous agent |
 | `/cleanup` | Git branch hygiene - delete merged branches, prune stale refs, sync deps |
