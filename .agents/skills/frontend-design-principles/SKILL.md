@@ -16,7 +16,9 @@ write the paragraph. Reuse below first, then https://svgl.app or
 https://eito.me/icons. Inline it.
 
 **3. Detail → summary.** Show the summary only; reveal detail on hover, click,
-or expand. Never dump the full record upfront.
+or expand. Never dump the full record upfront. Hover alone never counts: the
+same detail must open by keyboard and by touch, so lean on native
+`details`/`summary` or a real button before inventing a hover affordance.
 
 **4. Keep the main thing the main thing.** Exactly one CTA per view, with the
 only high-contrast treatment on screen. Everything else stays dull, so contrast
@@ -27,9 +29,13 @@ itself points the eye. Same CTA color, shape, and placement app-wide.
 **Desktop UI (React + Vite), `src/`**
 
 - Components: `src/components/Chat.tsx`, `SettingsPanel.tsx`,
-  `UpdateNotification.tsx`. `Chat.tsx` already inlines its gear and send marks
-  as JSX with `stroke="currentColor"` and `aria-hidden="true"`. Follow that
-  pattern for new icons; do not add an icon package for a handful of marks.
+  `UpdateNotification.tsx`. `Chat.tsx` inlines its gear and send marks as JSX
+  with `stroke="currentColor"`, and hides them with `aria-hidden="true"` only
+  because each enclosing button carries its own `aria-label` ("Open settings",
+  "Send message"). Copy both halves of that pattern: hide the SVG only when the
+  name lives on the control. An icon that carries meaning by itself needs
+  `role="img"` plus a `<title>`. Do not add an icon package for a handful of
+  marks.
 - Every rule and animation lives in `src/App.css`, including the keyframes
   `message-in`, `typing-bounce`, `update-banner-slide-in`, and
   `update-indeterminate`. Reuse an existing keyframe before writing a new one,
@@ -38,8 +44,10 @@ itself points the eye. Same CTA color, shape, and placement app-wide.
   Replace these when branding the app rather than adding placeholders beside
   them.
 - Anything the UI needs from the backend comes through a Tauri command, not a
-  direct import from `src-tauri/` or `crates/`. See the `update-backend` skill
-  before reaching for new data.
+  direct import from `src-tauri/` or `crates/`. The command pattern is written
+  up in `.claude/skills/update-backend/SKILL.md`; read that file directly if
+  your tool does not surface the skill (it is Claude-only, so Codex will not
+  auto-discover it).
 
 **Docs (Next.js + Fumadocs), `docs/`**
 
