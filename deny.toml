@@ -28,6 +28,13 @@ ignore = [
 # UNMAINTAINED TRANSITIVES - CSS/Selectors
 # Pulled in by kuchikiki -> selectors -> fxhash.
     "RUSTSEC-2025-0057", # fxhash is unmaintained
+
+    # UNMAINTAINED TRANSITIVES - D-Bus (Linux only)
+    # tauri-plugin-opener pins zbus ^5; zbus 6 folded these crates back in.
+    # Not vulnerabilities. Drop once tauri-plugin-opener moves to zbus 6.
+    "RUSTSEC-2026-0370", # zvariant is unmaintained
+    "RUSTSEC-2026-0371", # zbus_names is unmaintained
+    "RUSTSEC-2026-0372", # zvariant_derive is unmaintained
 ]
 
 [licenses]
