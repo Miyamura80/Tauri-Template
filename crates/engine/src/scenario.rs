@@ -303,7 +303,7 @@ steps:
     #[test]
     fn test_parse_scenario_args_key_n() {
         // Regression: YAML 1.1 treats `n` as a boolean, which would turn the
-        // `args` key into `false` and break the untagged ScenarioStep.
+        // inner `n` key of `args` into `false` and break the untagged ScenarioStep.
         let yaml = r#"
 steps:
   - call: "ping"
