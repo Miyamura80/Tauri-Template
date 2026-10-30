@@ -305,26 +305,26 @@ mod tests {
         {
             let _guard = EnvGuard::new("APP__LLM_CONFIG__CACHE_ENABLED", "true");
             let config = load_config().expect("Should load config");
-            assert_eq!(config.llm_config.cache_enabled, true);
+            assert!(config.llm_config.cache_enabled);
         }
 
         {
             let _guard = EnvGuard::new("APP__LLM_CONFIG__CACHE_ENABLED", "false");
             let config = load_config().expect("Should load config");
-            assert_eq!(config.llm_config.cache_enabled, false);
+            assert!(!config.llm_config.cache_enabled);
         }
 
         // Test boolean coercion from '1' and '0' (porting from Python tests)
         {
             let _guard = EnvGuard::new("APP__LOGGING__FORMAT__LOCATION__ENABLED", "1");
             let config = load_config().expect("Should load config");
-            assert_eq!(config.logging.format.location.enabled, true);
+            assert!(config.logging.format.location.enabled);
         }
 
         {
             let _guard = EnvGuard::new("APP__LOGGING__FORMAT__LOCATION__ENABLED", "0");
             let config = load_config().expect("Should load config");
-            assert_eq!(config.logging.format.location.enabled, false);
+            assert!(!config.logging.format.location.enabled);
         }
     }
 

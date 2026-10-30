@@ -9,7 +9,10 @@ use std::time::Duration;
 
 /// Load a scenario from a YAML string.
 pub fn load_scenario(yaml: &str) -> Result<Scenario, String> {
-    serde_yaml::from_str(yaml).map_err(|e| format!("failed to parse scenario YAML: {}", e))
+    // strict_booleans keeps YAML 1.1 words like `n`/`yes` from becoming bools
+    // in untyped places (e.g. the keys of `args`).
+    serde_saphyr::from_str_with_options(yaml, serde_saphyr::options! { strict_booleans: true })
+        .map_err(|e| format!("failed to parse scenario YAML: {}", e))
 }
 
 /// User choice at each interactive step.
@@ -295,6 +298,22 @@ steps:
         let s = load_scenario(yaml).expect("should parse");
         assert_eq!(s.name, Some("basic test".into()));
         assert_eq!(s.steps.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_scenario_args_key_n() {
+        // Regression: YAML 1.1 treats `n` as a boolean, which would turn the
+        // inner `n` key of `args` into `false` and break the untagged ScenarioStep.
+        let yaml = r#"
+steps:
+  - call: "ping"
+    args: {n: 3}
+"#;
+        let s = load_scenario(yaml).expect("should parse");
+        match &s.steps[0] {
+            ScenarioStep::Call { args, .. } => assert_eq!(args, &serde_json::json!({ "n": 3 })),
+            other => panic!("expected Call step, got {:?}", other),
+        }
     }
 
     #[tokio::test]
